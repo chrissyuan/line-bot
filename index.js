@@ -6,7 +6,7 @@ const app = express();
 // 🔐 LINE 設定（先直接寫死，確認成功後再改成環境變數）
 const config = {
   channelAccessToken:
-    "/jbgRnTnjfG8rhAu9sAqlaDUPIgcQ5FPi31YbQNgK+RO0HhVIRWCkDqPGDH8EoplC5osmre/YT3txK2LDfGJtr PLaY66POtPCjc/7A38O8YNHkqxkYijFNrykoZZW/u32S1AQe2H4mFplV5/UxffsQdB04t89/1O/w1cDnyilFU=",
+    "40JypbFdXAnaWQhvg5CvCm+2z5PmBiAACNFf+OVmXinaBER9vJYi1Ptmp5gFLuaIC5osmre/YT3txK2LDfGJtr PLaY66POtPCjc/7A38O8YvI+8C8ly/faM6sWzcAy11ZInTkBmDjfibl6DW4Q99+AdB04t89/1O/w1cDnyilFU=",
   channelSecret: "357b30a4ab210bafd6617371519020b0"
 };
 
