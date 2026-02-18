@@ -116,179 +116,72 @@ async function get7DayForecast() {
   try {
     console.log('開始取得7天的資料...');
     
-    // 使用 F-D0047-071 並指定需要的天氣元素
-    const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
-      `Authorization=${CWA_API_KEY}&` +
-      `locationName=宜蘭縣&` +
-      `elementName=Wx,MinT,MaxT,PoP`
-    );
-
-    console.log('API 回應狀態:', response.data.success);
+    // 嘗試不同的資料集 ID
+    const datasetIds = ['F-D0047-071', 'F-D0047-073', 'F-D0047-001', 'F-D0047-005'];
     
-    // 檢查回應結構
-    if (!response.data.records || !response.data.records.locations) {
-      console.log('找不到 records.locations，嘗試其他路徑');
-      
-      // 嘗試從 result 中取得資料
-      if (response.data.result) {
-        console.log('從 result 中找資料');
+    for (const datasetId of datasetIds) {
+      try {
+        console.log(`嘗試資料集: ${datasetId}`);
         
-        // 嘗試多種可能的欄位名稱（中文和英文）
-        const possibleLocationFields = ['location', '地點', 'Location', 'locations', 'Locations'];
-        const possibleWeatherFields = ['weatherElement', '天氣元素', 'WeatherElement'];
-        
-        let locations = null;
-        
-        // 尋找 locations
-        for (const field of possibleLocationFields) {
-          if (response.data.result[field]) {
-            console.log(`找到 locations 欄位: ${field}`);
-            locations = response.data.result[field];
-            break;
-          }
-        }
-        
-        if (!locations) {
-          console.log('找不到 locations 欄位');
-          return "";
-        }
-        
-        // 取得第一個 locations 物件
-        const locationsObj = Array.isArray(locations) ? locations[0] : locations;
-        
-        // 尋找 location array
-        let locationArray = null;
-        for (const field of possibleLocationFields) {
-          if (locationsObj[field]) {
-            console.log(`找到 location array 欄位: ${field}`);
-            locationArray = locationsObj[field];
-            break;
-          }
-        }
-        
-        if (!locationArray || locationArray.length === 0) {
-          console.log('找不到 location array');
-          return "";
-        }
-        
-        // 找到宜蘭縣的資料
-        const yilanData = locationArray.find(loc => 
-          loc.locationName === '宜蘭縣' || 
-          loc.地點名稱 === '宜蘭縣' ||
-          loc.LocationName === '宜蘭縣'
+        const response = await axios.get(
+          `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${datasetId}?` +
+          `Authorization=${CWA_API_KEY}&` +
+          `locationName=宜蘭縣&` +
+          `elementName=Wx,MinT,MaxT,PoP`
         );
+
+        console.log(`${datasetId} 回應狀態:`, response.data.success);
         
-        if (!yilanData) {
-          console.log('找不到宜蘭縣資料');
-          return "";
+        // 將完整的 API 回應記錄到日誌
+        const apiResponse = JSON.stringify(response.data, null, 2);
+        console.log(`${datasetId} 完整回應:`, apiResponse);
+        
+        // 如果成功，回傳部分資料讓 Line 顯示
+        if (response.data.success === "true") {
+          // 嘗試找出任何可能的資料路徑
+          const exploreResult = exploreResponse(response.data);
+          return `✅ ${datasetId} 成功！\n${exploreResult}`;
         }
         
-        // 尋找 weatherElement
-        let weatherElements = null;
-        for (const field of possibleWeatherFields) {
-          if (yilanData[field]) {
-            console.log(`找到 weatherElement 欄位: ${field}`);
-            weatherElements = yilanData[field];
-            break;
-          }
-        }
-        
-        if (!weatherElements || weatherElements.length === 0) {
-          console.log('找不到 weatherElement');
-          return "";
-        }
-        
-        // 解析各種天氣元素
-        const wxData = weatherElements.find(e => 
-          e.elementName === 'Wx' || e.元素名稱 === 'Wx' || e.天氣描述
-        )?.time || [];
-        
-        const minTData = weatherElements.find(e => 
-          e.elementName === 'MinT' || e.元素名稱 === 'MinT' || e.最低溫
-        )?.time || [];
-        
-        const maxTData = weatherElements.find(e => 
-          e.elementName === 'MaxT' || e.元素名稱 === 'MaxT' || e.最高溫
-        )?.time || [];
-        
-        const popData = weatherElements.find(e => 
-          e.elementName === 'PoP' || e.元素名稱 === 'PoP' || e.降雨機率
-        )?.time || [];
-        
-        console.log(`找到資料: Wx=${wxData.length}, MinT=${minTData.length}, MaxT=${maxTData.length}, PoP=${popData.length}`);
-        
-        // 獲取未來5天的日期
-        const futureDates = getFutureDates(5);
-        
-        let weekForecast = [];
-        
-        // 對每個目標日期尋找對應的預報資料
-        for (let i = 0; i < futureDates.length; i++) {
-          const targetDate = futureDates[i];
-          
-          // 尋找對應日期的資料
-          let wx = wxData.find(item => {
-            const startTime = item.startTime || item.開始時間 || item.dataTime;
-            return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
-          });
-          
-          let minT = minTData.find(item => {
-            const startTime = item.startTime || item.開始時間 || item.dataTime;
-            return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
-          });
-          
-          let maxT = maxTData.find(item => {
-            const startTime = item.startTime || item.開始時間 || item.dataTime;
-            return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
-          });
-          
-          let pop = popData.find(item => {
-            const startTime = item.startTime || item.開始時間 || item.dataTime;
-            return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
-          });
-          
-          if (wx || minT || maxT) {
-            // 解析天氣
-            let weather = "資料讀取中";
-            if (wx?.elementValue) {
-              if (Array.isArray(wx.elementValue)) {
-                weather = wx.elementValue[0]?.value || wx.elementValue[0]?.measures || "未知";
-              }
-            }
-            
-            // 解析溫度
-            let minTemp = minT?.elementValue?.[0]?.value || "--";
-            let maxTemp = maxT?.elementValue?.[0]?.value || "--";
-            let rain = pop?.elementValue?.[0]?.value || "--";
-            
-            weekForecast.push({
-              date: targetDate,
-              weather: weather,
-              minTemp: minTemp,
-              maxTemp: maxTemp,
-              pop: rain
-            });
-          }
-        }
-        
-        // 組合成文字
-        if (weekForecast.length > 0) {
-          let weekText = "";
-          for (const day of weekForecast) {
-            weekText += `${day.date} ${day.weather} ${day.maxTemp}°/${day.minTemp}° ☔${day.pop}%\n`;
-          }
-          return weekText;
-        }
+      } catch (e) {
+        console.log(`${datasetId} 失敗:`, e.message);
       }
     }
     
-    return "";
+    return "❌ 所有資料集都失敗，請查看 Render 日誌";
 
   } catch (error) {
     console.log("7天預報錯誤：", error.message);
-    return "";
+    return "API 呼叫失敗";
   }
+}
+
+// 探索回應結構的輔助函數
+function exploreResponse(data, path = 'root', depth = 0) {
+  if (depth > 3) return '...';
+  
+  let result = '';
+  const indent = '  '.repeat(depth);
+  
+  if (typeof data === 'object' && data !== null) {
+    const keys = Object.keys(data).slice(0, 5); // 只顯示前5個key
+    result += `\n${indent}${path}: {${keys.join(', ')}${Object.keys(data).length > 5 ? ', ...' : ''}}`;
+    
+    // 檢查是否有包含資料的欄位
+    for (const key of keys) {
+      const value = data[key];
+      if (Array.isArray(value) && value.length > 0) {
+        result += `\n${indent}  📊 ${key} 陣列長度: ${value.length}`;
+        if (value[0] && typeof value[0] === 'object') {
+          result += `\n${indent}    範例: ${JSON.stringify(Object.keys(value[0]).slice(0, 3))}`;
+        }
+      } else if (value && typeof value === 'object') {
+        result += exploreResponse(value, key, depth + 1);
+      }
+    }
+  }
+  
+  return result;
 }
 
 async function getCurrentWeather() {
@@ -358,11 +251,7 @@ async function getCurrentWeather() {
     result += twoHourText + '\n';
     
     result += `📅 未來 5 天預報\n`;
-    if (weekForecast) {
-      result += weekForecast;
-    } else {
-      result += `目前無資料\n`;
-    }
+    result += weekForecast + '\n';
     
     result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
 
