@@ -1,11 +1,58 @@
 const express = require('express');
 const axios = require('axios');
+const line = require('@line/bot-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 從環境變數獲取 API 金鑰
 const CWA_API_KEY = process.env.CWA_API_KEY;
+
+// Line Bot 配置
+const lineConfig = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET
+};
+
+// 初始化 Line 客戶端
+const client = new line.Client(lineConfig);
+
+// 解析 Line 的 webhook 請求
+app.post('/webhook', line.middleware(lineConfig), (req, res) => {
+  Promise.all(req.body.events.map(handleEvent))
+    .then((result) => res.json(result))
+    .catch((err) => {
+      console.error(err);
+      res.status(500).end();
+    });
+});
+
+// 處理 Line 事件
+async function handleEvent(event) {
+  if (event.type !== 'message' || event.message.type !== 'text') {
+    return Promise.resolve(null);
+  }
+
+  // 取得使用者輸入的文字
+  const userMessage = event.message.text;
+  
+  // 檢查是否為查詢天氣的命令
+  if (userMessage.includes('天氣') || userMessage.includes('宜蘭')) {
+    const weatherData = await getCurrentWeather();
+    
+    // 回覆天氣資訊
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: weatherData
+    });
+  }
+  
+  // 預設回覆
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: '請輸入「天氣」或「宜蘭」來查詢天氣資訊'
+  });
+}
 
 async function getCurrentWeather() {
   try {
@@ -84,16 +131,15 @@ async function getCurrentWeather() {
   }
 }
 
-// API 路由
-app.get('/', async (req, res) => {
-  const weatherData = await getCurrentWeather();
-  res.send(weatherData);
+// 測試用根路由
+app.get('/', (req, res) => {
+  res.send('Line Bot 天氣機器人已啟動！');
 });
 
 // 啟動伺服器
 app.listen(PORT, () => {
   console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
-  console.log(`請訪問 http://localhost:${PORT} 查看天氣資訊`);
+  console.log(`Webhook URL: https://line-bot-agjf.onrender.com/webhook`);
 });
 
 module.exports = app;
