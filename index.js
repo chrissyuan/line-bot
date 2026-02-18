@@ -74,14 +74,11 @@ function getNextHourTime(currentHour, currentMinute) {
   let nextMinute = '00';
   
   if (currentMinute < 30) {
-    // 如果現在是 5:30 之前，下個時段從 6:00 開始
     nextHour = currentHour + 1;
   } else {
-    // 如果現在是 5:30 之後，下個時段從 currentHour+2:00 開始
     nextHour = currentHour + 2;
   }
   
-  // 處理跨日
   if (nextHour >= 24) {
     nextHour = nextHour - 24;
   }
@@ -94,36 +91,27 @@ function generate2HourSlots() {
   const slots = [];
   const now = new Date();
   
-  // 調整為台灣時間（UTC+8）
   const twTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
   const currentHour = twTime.getHours();
   const currentMinute = twTime.getMinutes();
   
   console.log(`當前台灣時間: ${currentHour}:${currentMinute}`);
   
-  // 計算第一個起始時間
   let startHour = currentHour;
-  let startMinute = '00';
   
-  // 根據當前分鐘決定起始時間
   if (currentMinute < 30) {
-    // 5:30 之前，從下一個整點開始 (6:00)
     startHour = currentHour + 1;
   } else {
-    // 5:30 之後，從下兩個整點開始 (8:00)
     startHour = currentHour + 2;
   }
   
-  // 生成5個2小時間隔（共10小時）
   for (let i = 0; i < 5; i++) {
     const slotStartHour = (startHour + (i * 2)) % 24;
     const slotEndHour = (slotStartHour + 2) % 24;
     
-    // 格式化時間字串
     const startTimeStr = `${String(slotStartHour).padStart(2, '0')}:00`;
     const endTimeStr = `${String(slotEndHour).padStart(2, '0')}:00`;
     
-    // 判斷是否跨日
     let dayMark = "";
     if (slotStartHour < currentHour && i > 0) {
       dayMark = " (明日)";
@@ -135,76 +123,125 @@ function generate2HourSlots() {
       start: startTimeStr,
       end: endTimeStr,
       dayMark: dayMark,
-      period: i // 用於匹配API資料
+      startHour: slotStartHour
     });
   }
   
   return slots;
 }
 
-// 獲取 7 天預報的函數
+// 從 API 獲取未來5天預報
 async function get7DayForecast() {
   try {
+    console.log('開始獲取7天預報資料...');
+    
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
+      `Authorization=${CWA_API_KEY}&` +
+      `locationName=宜蘭縣&` +
+      `elementName=Wx,MinT,MaxT,PoP`
     );
 
-    console.log('7天預報 API 回應狀態:', response.data.success);
+    console.log('API 回應狀態:', response.data.success);
     
-    // 獲取未來5天的日期
-    const futureDates = getFutureDates(5);
-    
-    // 天氣狀況陣列（可以根據季節或隨機變化）
-    const weatherConditions = [
-      '晴時多雲', '多雲時晴', '多雲', '陰時多雲', 
-      '多雲短暫雨', '陰短暫雨', '晴時多雲', '多雲時晴'
-    ];
-    
-    // 溫度範圍（可以根據季節調整）
-    const tempRanges = [
-      { max: 22, min: 18 }, // 微涼
-      { max: 24, min: 19 }, // 舒適
-      { max: 23, min: 18 }, // 舒適
-      { max: 21, min: 17 }, // 稍涼
-      { max: 22, min: 18 }  // 舒適
-    ];
-    
-    // 降雨機率
-    const rainChances = [30, 20, 10, 0, 20];
-    
-    let weekText = "";
-    
-    // 根據實際日期生成天氣預報
-    for (let i = 0; i < 5; i++) {
-      // 隨機選擇天氣，但保持一定的連續性
-      const weatherIndex = Math.floor(Math.random() * weatherConditions.length);
-      const weather = weatherConditions[weatherIndex];
-      
-      // 使用預設的溫度範圍
-      const maxTemp = tempRanges[i].max;
-      const minTemp = tempRanges[i].min;
-      
-      // 降雨機率
-      const rain = rainChances[i];
-      
-      weekText += `${futureDates[i]} ${weather} ${maxTemp}°/${minTemp}° ☔${rain}%\n`;
+    if (!response.data.records || !response.data.records.locations) {
+      console.log('API 結構錯誤');
+      return "";
     }
 
-    return weekText;
+    const locations = response.data.records.locations[0]?.location;
+    if (!locations || locations.length === 0) {
+      return "";
+    }
+
+    const location = locations[0];
+    
+    const weatherElements = location.weatherElement || [];
+    
+    const wxData = weatherElements.find(e => e.elementName === "Wx")?.time || [];
+    const minTData = weatherElements.find(e => e.elementName === "MinT")?.time || [];
+    const maxTData = weatherElements.find(e => e.elementName === "MaxT")?.time || [];
+    const popData = weatherElements.find(e => e.elementName === "PoP")?.time || [];
+
+    const futureDates = getFutureDates(5);
+    
+    let weekForecast = [];
+    
+    for (let i = 0; i < futureDates.length; i++) {
+      const targetDate = futureDates[i];
+      
+      const dayWx = wxData.find(item => {
+        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
+        return itemDate === targetDate;
+      });
+      
+      const dayMinT = minTData.find(item => {
+        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
+        return itemDate === targetDate;
+      });
+      
+      const dayMaxT = maxTData.find(item => {
+        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
+        return itemDate === targetDate;
+      });
+      
+      const dayPop = popData.find(item => {
+        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
+        return itemDate === targetDate;
+      });
+      
+      // 只有當所有必要資料都存在時才加入
+      if (dayWx && dayMinT && dayMaxT) {
+        let weather = "";
+        if (Array.isArray(dayWx.elementValue)) {
+          weather = dayWx.elementValue[0]?.value || "";
+        }
+        
+        let minTemp = "";
+        if (Array.isArray(dayMinT.elementValue)) {
+          minTemp = dayMinT.elementValue[0]?.value || "";
+        }
+        
+        let maxTemp = "";
+        if (Array.isArray(dayMaxT.elementValue)) {
+          maxTemp = dayMaxT.elementValue[0]?.value || "";
+        }
+        
+        let pop = "";
+        if (dayPop && Array.isArray(dayPop.elementValue)) {
+          pop = dayPop.elementValue[0]?.value || "";
+        }
+        
+        weekForecast.push({
+          date: targetDate,
+          weather: weather,
+          minTemp: minTemp,
+          maxTemp: maxTemp,
+          pop: pop
+        });
+      }
+    }
+    
+    if (weekForecast.length > 0) {
+      let weekText = "";
+      for (const day of weekForecast) {
+        let dayText = `${day.date} ${day.weather}`;
+        if (day.maxTemp && day.minTemp) {
+          dayText += ` ${day.maxTemp}°/${day.minTemp}°`;
+        }
+        if (day.pop) {
+          dayText += ` ☔${day.pop}%`;
+        }
+        weekText += dayText + '\n';
+      }
+      return weekText;
+    } else {
+      return "";
+    }
 
   } catch (error) {
     console.log("7天預報錯誤：", error.message);
-    
-    // 發生錯誤時，至少回傳正確日期的測試資料
-    const futureDates = getFutureDates(5);
-    
-    return (
-      `${futureDates[0]} 多雲短暫雨 22°/18° ☔30%\n` +
-      `${futureDates[1]} 陰時多雲 24°/19° ☔20%\n` +
-      `${futureDates[2]} 多雲 23°/18° ☔10%\n` +
-      `${futureDates[3]} 晴時多雲 21°/17° ☔0%\n` +
-      `${futureDates[4]} 多雲時晴 22°/18° ☔20%`
-    );
+    return "";
   }
 }
 
@@ -218,14 +255,20 @@ async function getCurrentWeather() {
     const location36 = res36.data.records.location[0];
     const elements36 = location36.weatherElement;
 
-    const wx = elements36.find(e => e.elementName === "Wx").time;
-    const pop = elements36.find(e => e.elementName === "PoP").time;
-    const minT = elements36.find(e => e.elementName === "MinT").time;
-    const maxT = elements36.find(e => e.elementName === "MaxT").time;
+    const wx = elements36.find(e => e.elementName === "Wx")?.time || [];
+    const pop = elements36.find(e => e.elementName === "PoP")?.time || [];
+    const minT = elements36.find(e => e.elementName === "MinT")?.time || [];
+    const maxT = elements36.find(e => e.elementName === "MaxT")?.time || [];
     
-    // 獲取當前時間的氣溫（使用第一個MinT和MaxT的平均值作為當前溫度）
-    const currentMinTemp = minT[0].parameter.parameterName;
-    const currentMaxTemp = maxT[0].parameter.parameterName;
+    // 檢查是否有足夠的36小時預報資料
+    if (wx.length === 0 || pop.length === 0 || minT.length === 0 || maxT.length === 0) {
+      return "⚠️ 無法取得36小時預報資料";
+    }
+    
+    const currentMinTemp = minT[0]?.parameter?.parameterName;
+    const currentMaxTemp = maxT[0]?.parameter?.parameterName;
+    const currentWeather = wx[0]?.parameter?.parameterName;
+    const currentPop = pop[0]?.parameter?.parameterName;
     
     // 生成2小時間隔的時間區間
     const timeSlots = generate2HourSlots();
@@ -235,25 +278,40 @@ async function getCurrentWeather() {
     for (let i = 0; i < timeSlots.length; i++) {
       const slot = timeSlots[i];
       
-      // 根據時間段匹配API資料（這裡需要根據實際API資料做調整）
-      // 目前先用規律變化的測試資料
-      const weatherIndex = (i + Math.floor(Math.random() * 3)) % 3;
-      const weathers = ['多雲時陰', '陰短暫雨', '多雲', '晴時多雲', '陰時多雲'];
-      const weather = weathers[i % weathers.length];
+      // 根據時間找到對應的預報資料
+      // 36小時預報是12小時間隔，所以我們需要找到最接近的時段
+      let bestMatch = null;
+      let smallestDiff = Infinity;
       
-      const rains = [30, 20, 10, 20, 30];
-      const rain = rains[i];
+      for (let j = 0; j < wx.length; j++) {
+        const forecastHour = parseInt(wx[j].startTime.substring(11, 13));
+        const diff = Math.abs(forecastHour - slot.startHour);
+        if (diff < smallestDiff) {
+          smallestDiff = diff;
+          bestMatch = j;
+        }
+      }
       
-      // 溫度隨著時間變化（早上較低，中午較高）
-      const baseTemp = 15;
-      const tempVar = i * 0.5;
-      const minTemp = baseTemp + tempVar;
-      const maxTemp = baseTemp + tempVar + 1;
-      
-      twoHourText += `${slot.start}-${slot.end}${slot.dayMark} ${weather} ${Math.round(minTemp)}°~${Math.round(maxTemp)}° ☔${rain}%\n`;
+      if (bestMatch !== null) {
+        const weather = wx[bestMatch]?.parameter?.parameterName || "";
+        const rain = pop[bestMatch]?.parameter?.parameterName || "";
+        const minTemp = minT[bestMatch]?.parameter?.parameterName || "";
+        const maxTemp = maxT[bestMatch]?.parameter?.parameterName || "";
+        
+        if (weather && minTemp && maxTemp) {
+          let slotText = `${slot.start}-${slot.end}${slot.dayMark} ${weather}`;
+          if (minTemp && maxTemp) {
+            slotText += ` ${minTemp}°~${maxTemp}°`;
+          }
+          if (rain) {
+            slotText += ` ☔${rain}%`;
+          }
+          twoHourText += slotText + '\n';
+        }
+      }
     }
 
-    // ===== 獲取7天預報 =====
+    // ===== 從 API 獲取未來5天預報 =====
     const weekForecast = await get7DayForecast();
 
     // 獲取今天的日期顯示
@@ -262,18 +320,33 @@ async function getCurrentWeather() {
     const todayStr = `${twTime.getFullYear()}/${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
     const currentTimeStr = `${String(twTime.getHours()).padStart(2, '0')}:${String(twTime.getMinutes()).padStart(2, '0')}`;
 
-    return (
-      `📍 宜蘭縣天氣總覽 (${todayStr} ${currentTimeStr})\n` +
-      `━━━━━━━━━━━━\n\n` +
-      `🌡 目前氣溫：${currentMinTemp}°C ~ ${currentMaxTemp}°C\n` +
-      `☁️ 天氣：${wx[0].parameter.parameterName}\n` +
-      `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
-      `🕒 未來 10 小時逐2小時預報\n` +
-      twoHourText +
-      `\n📅 未來 5 天預報\n` +
-      weekForecast +
-      `━━━━━━━━━━━━\n資料來源：中央氣象署`
-    );
+    let result = `📍 宜蘭縣天氣總覽 (${todayStr} ${currentTimeStr})\n`;
+    result += `━━━━━━━━━━━━\n\n`;
+    
+    // 只有當資料存在時才顯示
+    if (currentMinTemp && currentMaxTemp) {
+      result += `🌡 目前氣溫：${currentMinTemp}°C ~ ${currentMaxTemp}°C\n`;
+    }
+    if (currentWeather) {
+      result += `☁️ 天氣：${currentWeather}\n`;
+    }
+    if (currentPop) {
+      result += `☔ 降雨機率：${currentPop}%\n\n`;
+    }
+    
+    if (twoHourText) {
+      result += `🕒 未來 10 小時逐2小時預報\n`;
+      result += twoHourText + '\n';
+    }
+    
+    if (weekForecast) {
+      result += `📅 未來 5 天預報\n`;
+      result += weekForecast;
+    }
+    
+    result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
+
+    return result;
 
   } catch (error) {
     console.log("錯誤內容：", error.response?.data || error.message);
