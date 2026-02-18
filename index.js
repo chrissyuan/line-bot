@@ -1,3 +1,12 @@
+const express = require('express');
+const axios = require('axios');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// 從環境變數獲取 API 金鑰
+const CWA_API_KEY = process.env.CWA_API_KEY;
+
 async function getCurrentWeather() {
   try {
     // ===== 36小時預報 =====
@@ -24,38 +33,37 @@ async function getCurrentWeather() {
     }
 
     // ===== 7天預報 API =====
-const res7 = await axios.get(
-  `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-);
+    const res7 = await axios.get(
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
+    );
 
-if (!res7.data.records.locations) {
-  return "⚠️ 7天預報 API 結構錯誤";
-}
+    if (!res7.data.records.locations) {
+      return "⚠️ 7天預報 API 結構錯誤";
+    }
 
-const locations = res7.data.records.locations[0].location;
+    const locations = res7.data.records.locations[0].location;
 
-if (!locations || locations.length === 0) {
-  return "⚠️ 找不到宜蘭縣資料";
-}
+    if (!locations || locations.length === 0) {
+      return "⚠️ 找不到宜蘭縣資料";
+    }
 
-const location7 = locations[0];
-const elements7 = location7.weatherElement;
+    const location7 = locations[0];
+    const elements7 = location7.weatherElement;
 
-const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
-const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
-const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
+    const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
+    const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
+    const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
 
-let weekText = "";
+    let weekText = "";
 
-for (let i = 0; i < 5 && i < wx7.length; i++) {
-  const date = wx7[i].startTime.substring(5, 10);
-  const weather = wx7[i].elementValue[0].value;
-  const minTemp = minT7[i]?.elementValue[0]?.value || "--";
-  const maxTemp = maxT7[i]?.elementValue[0]?.value || "--";
+    for (let i = 0; i < 5 && i < wx7.length; i++) {
+      const date = wx7[i].startTime.substring(5, 10);
+      const weather = wx7[i].elementValue[0].value;
+      const minTemp = minT7[i]?.elementValue[0]?.value || "--";
+      const maxTemp = maxT7[i]?.elementValue[0]?.value || "--";
 
-  weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
-}
-
+      weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
+    }
 
     return (
       `📍 宜蘭縣天氣總覽\n` +
@@ -75,3 +83,17 @@ for (let i = 0; i < 5 && i < wx7.length; i++) {
     return "⚠️ 無法取得天氣資料";
   }
 }
+
+// API 路由
+app.get('/', async (req, res) => {
+  const weatherData = await getCurrentWeather();
+  res.send(weatherData);
+});
+
+// 啟動伺服器
+app.listen(PORT, () => {
+  console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
+  console.log(`請訪問 http://localhost:${PORT} 查看天氣資訊`);
+});
+
+module.exports = app;
