@@ -25,7 +25,7 @@ app.post("/webhook", line.middleware(config), (req, res) => {
       res.sendStatus(500);
     });
 });
-
+console.log("API KEY:", CWA_API_KEY);
 async function getCurrentWeather() {
   try {
     // 36小時預報
