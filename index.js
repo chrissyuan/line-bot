@@ -54,14 +54,131 @@ async function handleEvent(event) {
   });
 }
 
+// 獲取 7 天預報的函數
+async function get7DayForecast() {
+  try {
+    // 使用正確的資料集 ID - 鄉鎮天氣預報
+    const response = await axios.get(
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
+    );
+
+    console.log('7天預報 API 完整回應:', JSON.stringify(response.data, null, 2).substring(0, 500));
+
+    // 檢查資料結構
+    if (!response.data.records || !response.data.records.locations) {
+      console.log('找不到 records.locations');
+      return null;
+    }
+
+    const locations = response.data.records.locations[0]?.location;
+    if (!locations || locations.length === 0) {
+      console.log('找不到 location 資料');
+      return null;
+    }
+
+    const location = locations[0];
+    console.log('地點:', location.locationName);
+
+    const weatherElements = location.weatherElement || [];
+    
+    // 找出需要的天氣元素
+    const wxData = weatherElements.find(e => e.elementName === "Wx")?.time || [];
+    const tempData = weatherElements.find(e => e.elementName === "T")?.time || [];
+    const minTData = weatherElements.find(e => e.elementName === "MinT")?.time || [];
+    const maxTData = weatherElements.find(e => e.elementName === "MaxT")?.time || [];
+    const popData = weatherElements.find(e => e.elementName === "PoP")?.time || [];
+
+    console.log(`找到天氣資料: Wx=${wxData.length}, Temp=${tempData.length}, MinT=${minTData.length}, MaxT=${maxTData.length}, PoP=${popData.length}`);
+
+    // 如果沒有找到任何資料，返回 null
+    if (wxData.length === 0) {
+      console.log('找不到天氣描述資料');
+      return null;
+    }
+
+    let weekText = "";
+    const daysToShow = Math.min(5, wxData.length);
+
+    for (let i = 0; i < daysToShow; i++) {
+      // 解析日期
+      const startTime = wxData[i]?.startTime || wxData[i]?.dataTime;
+      if (!startTime) continue;
+      
+      const date = startTime.substring(5, 10).replace('-', '/');
+      
+      // 獲取天氣描述 - 處理不同的資料格式
+      let weather = "--";
+      if (wxData[i]?.elementValue) {
+        if (Array.isArray(wxData[i].elementValue)) {
+          weather = wxData[i].elementValue[0]?.value || 
+                   wxData[i].elementValue[0]?.measure || 
+                   "--";
+        } else if (wxData[i].elementValue.value) {
+          weather = wxData[i].elementValue.value;
+        }
+      } else if (wxData[i]?.value) {
+        weather = wxData[i].value;
+      }
+
+      // 獲取溫度 - 優先使用 MinT/MaxT，如果沒有則使用 T
+      let minTemp = "--";
+      let maxTemp = "--";
+
+      // 嘗試從 MinT 獲取
+      if (minTData[i]?.elementValue) {
+        if (Array.isArray(minTData[i].elementValue)) {
+          minTemp = minTData[i].elementValue[0]?.value || "--";
+        }
+      }
+
+      // 嘗試從 MaxT 獲取
+      if (maxTData[i]?.elementValue) {
+        if (Array.isArray(maxTData[i].elementValue)) {
+          maxTemp = maxTData[i].elementValue[0]?.value || "--";
+        }
+      }
+
+      // 如果沒有 MinT/MaxT，嘗試從 T 獲取
+      if (minTemp === "--" && tempData[i * 2]) {
+        if (Array.isArray(tempData[i * 2]?.elementValue)) {
+          minTemp = tempData[i * 2].elementValue[0]?.value || "--";
+        }
+      }
+      if (maxTemp === "--" && tempData[i * 2 + 1]) {
+        if (Array.isArray(tempData[i * 2 + 1]?.elementValue)) {
+          maxTemp = tempData[i * 2 + 1].elementValue[0]?.value || "--";
+        }
+      }
+
+      // 獲取降雨機率
+      let pop = "--";
+      if (popData[i]?.elementValue) {
+        if (Array.isArray(popData[i].elementValue)) {
+          pop = popData[i].elementValue[0]?.value || "--";
+        }
+      }
+
+      weekText += `${date} ${weather} ${maxTemp}°/${minTemp}° ☔${pop}%\n`;
+    }
+
+    return weekText;
+
+  } catch (error) {
+    console.log("7天預報錯誤：", error.message);
+    if (error.response) {
+      console.log("回應狀態：", error.response.status);
+      console.log("回應資料：", error.response.data);
+    }
+    return null;
+  }
+}
+
 async function getCurrentWeather() {
   try {
     // ===== 36小時預報 =====
     const res36 = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
-
-    console.log('36小時預報 API 回應成功');
 
     const location36 = res36.data.records.location[0];
     const elements36 = location36.weatherElement;
@@ -81,113 +198,24 @@ async function getCurrentWeather() {
       sixHourText += `${start}-${end} ${weather} ☔${rain}%\n`;
     }
 
-    // ===== 7天預報 API =====
-    // 嘗試不同的資料集 ID
-    const datasetIds = ['F-D0047-003', 'F-D0047-005', 'F-D0047-007', 'F-D0047-001'];
-    let res7 = null;
-    let success = false;
+    // ===== 嘗試獲取7天預報 =====
+    const weekForecast = await get7DayForecast();
 
-    for (const datasetId of datasetIds) {
-      try {
-        console.log(`嘗試使用資料集: ${datasetId}`);
-        const response = await axios.get(
-          `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${datasetId}?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-        );
-        
-        if (response.data.records && response.data.records.locations) {
-          res7 = response;
-          success = true;
-          console.log(`成功使用資料集: ${datasetId}`);
-          break;
-        }
-      } catch (e) {
-        console.log(`資料集 ${datasetId} 失敗`);
-      }
+    let result = `📍 宜蘭縣天氣總覽\n━━━━━━━━━━━━\n\n` +
+                 `🌡 氣溫：${minT}°C ~ ${maxT}°C\n` +
+                 `☁️ 天氣：${wx[0].parameter.parameterName}\n` +
+                 `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
+                 `🕒 未來 6 小時區間\n${sixHourText}\n`;
+
+    if (weekForecast) {
+      result += `\n📅 未來 5 天\n${weekForecast}`;
+    } else {
+      result += `\n📅 未來 5 天預報暫時無法取得\n`;
     }
 
-    if (!success) {
-      // 如果7天預報失敗，只回傳36小時預報
-      return (
-        `📍 宜蘭縣天氣總覽 (僅36小時預報)\n` +
-        `━━━━━━━━━━━━\n\n` +
-        `🌡 氣溫：${minT}°C ~ ${maxT}°C\n` +
-        `☁️ 天氣：${wx[0].parameter.parameterName}\n` +
-        `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
-        `🕒 未來 6 小時區間\n` +
-        sixHourText +
-        `\n📅 未來 5 天預報暫時無法取得\n` +
-        `━━━━━━━━━━━━\n資料來源：中央氣象署`
-      );
-    }
+    result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
 
-    // 解析7天預報資料
-    const locations = res7.data.records.locations[0].location;
-    const location7 = locations[0];
-    const elements7 = location7.weatherElement;
-
-    // 記錄實際的資料結構
-    console.log('7天預報 API 元素:', elements7.map(e => e.elementName));
-
-    const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
-    const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
-    const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
-
-    let weekText = "";
-
-    for (let i = 0; i < 5 && i < wx7.length; i++) {
-      const date = wx7[i].startTime.substring(5, 10);
-      
-      // 處理不同的資料格式
-      let weather = "--";
-      if (wx7[i].elementValue) {
-        if (Array.isArray(wx7[i].elementValue)) {
-          weather = wx7[i].elementValue[0]?.value || "--";
-        } else if (wx7[i].elementValue.value) {
-          weather = wx7[i].elementValue.value;
-        }
-      } else if (wx7[i].value) {
-        weather = wx7[i].value;
-      } else if (wx7[i].parameter) {
-        weather = wx7[i].parameter.parameterName || "--";
-      }
-
-      let minTemp = "--";
-      if (minT7[i]?.elementValue) {
-        if (Array.isArray(minT7[i].elementValue)) {
-          minTemp = minT7[i].elementValue[0]?.value || "--";
-        } else if (minT7[i].elementValue.value) {
-          minTemp = minT7[i].elementValue.value;
-        }
-      } else if (minT7[i]?.value) {
-        minTemp = minT7[i].value;
-      }
-
-      let maxTemp = "--";
-      if (maxT7[i]?.elementValue) {
-        if (Array.isArray(maxT7[i].elementValue)) {
-          maxTemp = maxT7[i].elementValue[0]?.value || "--";
-        } else if (maxT7[i].elementValue.value) {
-          maxTemp = maxT7[i].elementValue.value;
-        }
-      } else if (maxT7[i]?.value) {
-        maxTemp = maxT7[i].value;
-      }
-
-      weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
-    }
-
-    return (
-      `📍 宜蘭縣天氣總覽\n` +
-      `━━━━━━━━━━━━\n\n` +
-      `🌡 氣溫：${minT}°C ~ ${maxT}°C\n` +
-      `☁️ 天氣：${wx[0].parameter.parameterName}\n` +
-      `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
-      `🕒 未來 6 小時區間\n` +
-      sixHourText +
-      `\n📅 未來 5 天\n` +
-      weekText +
-      `━━━━━━━━━━━━\n資料來源：中央氣象署`
-    );
+    return result;
 
   } catch (error) {
     console.log("錯誤內容：", error.response?.data || error.message);
