@@ -32,18 +32,36 @@ async function getCurrentWeather() {
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=${CWA_API_KEY}&LocationName=宜蘭`
     );
 
+    console.log("API 回傳資料：");
+    console.log(JSON.stringify(response.data, null, 2));
+
+    if (!response.data.records || !response.data.records.location) {
+      return "⚠️ API 沒有回傳資料";
+    }
+
     const location = response.data.records.location[0];
+
+    if (!location) {
+      return "⚠️ 找不到宜蘭資料";
+    }
+
     const elements = location.weatherElement;
 
-    const temp = elements.find(e => e.elementName === "TEMP").elementValue;
-    const humd = elements.find(e => e.elementName === "HUMD").elementValue;
+    const temp = elements.find(e => e.elementName === "TEMP")?.elementValue;
+    const humd = elements.find(e => e.elementName === "HUMD")?.elementValue;
+
+    if (!temp || !humd) {
+      return "⚠️ 天氣資料格式異常";
+    }
 
     return `🌤 宜蘭目前天氣\n🌡 溫度：${temp}°C\n💧 濕度：${Math.round(humd * 100)}%`;
+
   } catch (error) {
-    console.error(error);
+    console.error("API 錯誤：", error.response?.data || error.message);
     return "⚠️ 無法取得即時天氣資料";
   }
 }
+
 
 async function handleEvent(event) {
   if (event.type !== "message" || event.message.type !== "text") {
