@@ -146,17 +146,34 @@ async function getCurrentWeather() {
 
     const wx = elements36.find(e => e.elementName === "Wx").time;
     const pop = elements36.find(e => e.elementName === "PoP").time;
-    const minT = elements36.find(e => e.elementName === "MinT").time[0].parameter.parameterName;
-    const maxT = elements36.find(e => e.elementName === "MaxT").time[0].parameter.parameterName;
-
+    const minT = elements36.find(e => e.elementName === "MinT").time;
+    const maxT = elements36.find(e => e.elementName === "MaxT").time;
+    
+    // 獲取當前時間的氣溫（使用第一個MinT和MaxT的平均值作為當前溫度）
+    const currentMinTemp = minT[0].parameter.parameterName;
+    const currentMaxTemp = maxT[0].parameter.parameterName;
+    
+    // 獲取未來6小時的溫度
     let sixHourText = "";
     for (let i = 0; i < 3; i++) {
       const start = wx[i].startTime.substring(11, 16);
       const end = wx[i].endTime.substring(11, 16);
       const weather = wx[i].parameter.parameterName;
       const rain = pop[i].parameter.parameterName;
+      
+      // 獲取該時間段的溫度
+      // 使用對應的MinT和MaxT（如果有的話）
+      let tempText = "";
+      if (i < minT.length && i < maxT.length) {
+        const periodMinTemp = minT[i]?.parameter?.parameterName || currentMinTemp;
+        const periodMaxTemp = maxT[i]?.parameter?.parameterName || currentMaxTemp;
+        tempText = `${periodMinTemp}°~${periodMaxTemp}°`;
+      } else {
+        // 如果沒有該時段的溫度資料，使用當前溫度範圍
+        tempText = `${currentMinTemp}°~${currentMaxTemp}°`;
+      }
 
-      sixHourText += `${start}-${end} ${weather} ☔${rain}%\n`;
+      sixHourText += `${start}-${end} ${weather} ${tempText} ☔${rain}%\n`;
     }
 
     // ===== 獲取7天預報 =====
@@ -170,10 +187,10 @@ async function getCurrentWeather() {
     return (
       `📍 宜蘭縣天氣總覽 (${todayStr})\n` +
       `━━━━━━━━━━━━\n\n` +
-      `🌡 氣溫：${minT}°C ~ ${maxT}°C\n` +
+      `🌡 目前氣溫：${currentMinTemp}°C ~ ${currentMaxTemp}°C\n` +
       `☁️ 天氣：${wx[0].parameter.parameterName}\n` +
       `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
-      `🕒 未來 6 小時區間\n` +
+      `🕒 未來 6 小時區間（含溫度）\n` +
       sixHourText +
       `\n📅 未來 5 天預報\n` +
       weekForecast +
