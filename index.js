@@ -119,162 +119,91 @@ async function get7DayForecast() {
     const response = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
       `Authorization=${CWA_API_KEY}&` +
-      `locationName=宜蘭縣&` +
-      `elementName=Wx,MinT,MaxT,PoP`
+      `locationName=宜蘭縣`
     );
 
     console.log('API 回應狀態:', response.data.success);
     
-    // 嘗試多種可能的資料路徑
-    let locations = null;
-    let weatherData = null;
+    // 根據實際的回應結構，資料可能在 result 中
+    if (!response.data.result) {
+      console.log('找不到 result');
+      return "";
+    }
     
-    // 路徑 1: records.locations
-    if (response.data.records?.locations) {
-      console.log('使用路徑: records.locations');
-      locations = response.data.records.locations[0]?.location;
-    }
-    // 路徑 2: records.location
-    else if (response.data.records?.location) {
-      console.log('使用路徑: records.location');
-      locations = response.data.records.location;
-    }
-    // 路徑 3: data.records.locations
-    else if (response.data.data?.records?.locations) {
-      console.log('使用路徑: data.records.locations');
-      locations = response.data.data.records.locations[0]?.location;
-    }
-    // 路徑 4: result.records.locations
-    else if (response.data.result?.records?.locations) {
-      console.log('使用路徑: result.records.locations');
-      locations = response.data.result.records.locations[0]?.location;
-    }
+    // 從 result 中取得 locations
+    // 注意：欄位名稱是中文的！
+    const locations = response.data.result.locations || 
+                      response.data.result.地點 || 
+                      response.data.result.Locations;
     
     if (!locations || locations.length === 0) {
-      console.log('找不到 locations 資料，完整回應:', JSON.stringify(response.data, null, 2).substring(0, 500));
-      return "無法取得天氣資料";
-    }
-
-    const location = locations[0];
-    console.log('地點名稱:', location.locationName);
-    
-    const weatherElements = location.weatherElement || [];
-    console.log('天氣元素:', weatherElements.map(e => e.elementName));
-    
-    // 獲取各種天氣元素
-    const wxData = weatherElements.find(e => e.elementName === "Wx")?.time || [];
-    const minTData = weatherElements.find(e => e.elementName === "MinT")?.time || [];
-    const maxTData = weatherElements.find(e => e.elementName === "MaxT")?.time || [];
-    const popData = weatherElements.find(e => e.elementName === "PoP")?.time || [];
-
-    console.log(`Wx 資料筆數: ${wxData.length}`);
-    if (wxData.length > 0) {
-      console.log('第一筆 Wx 開始時間:', wxData[0].startTime);
+      console.log('找不到 locations');
+      return "";
     }
     
-    // 獲取未來5天的日期
-    const futureDates = getFutureDates(5);
-    console.log('目標未來日期:', futureDates);
+    // 第一個 locations 物件
+    const locationsObj = locations[0];
     
+    // 取得 location 陣列（可能是 location 或 地點）
+    const locationArray = locationsObj.location || locationsObj.地點;
+    
+    if (!locationArray || locationArray.length === 0) {
+      console.log('找不到 locationArray');
+      return "";
+    }
+    
+    // 宜蘭縣的資料
+    const yilanData = locationArray.find(loc => 
+      loc.locationName === '宜蘭縣' || 
+      loc.地點名稱 === '宜蘭縣' ||
+      loc.LocationName === '宜蘭縣'
+    );
+    
+    if (!yilanData) {
+      console.log('找不到宜蘭縣資料');
+      return "";
+    }
+    
+    console.log('找到宜蘭縣資料');
+    
+    // 取得 weatherElement（可能是 weatherElement 或 天氣元素）
+    const weatherElements = yilanData.weatherElement || yilanData.天氣元素 || [];
+    
+    // 因為沒有指定 elementName，我們需要從回傳的資料中解析
+    // 直接從第一個天氣元素開始取資料
     let weekForecast = [];
     
-    // 對每個目標日期尋找對應的預報資料
-    for (let i = 0; i < futureDates.length; i++) {
-      const targetDate = futureDates[i];
+    // 假設天氣元素中第一個是時間序列
+    if (weatherElements.length > 0) {
+      const firstElement = weatherElements[0];
+      const timeData = firstElement.time || firstElement.時間 || [];
       
-      // 尋找對應日期的天氣資料
-      let foundWx = null;
-      let foundMinT = null;
-      let foundMaxT = null;
-      let foundPop = null;
+      console.log(`時間資料筆數: ${timeData.length}`);
       
-      // 從 Wx 資料中找對應日期
-      for (const item of wxData) {
-        if (item.startTime) {
-          const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-          if (itemDate === targetDate) {
-            foundWx = item;
-            break;
-          }
-        }
-      }
-      
-      // 從 MinT 資料中找對應日期
-      for (const item of minTData) {
-        if (item.startTime) {
-          const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-          if (itemDate === targetDate) {
-            foundMinT = item;
-            break;
-          }
-        }
-      }
-      
-      // 從 MaxT 資料中找對應日期
-      for (const item of maxTData) {
-        if (item.startTime) {
-          const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-          if (itemDate === targetDate) {
-            foundMaxT = item;
-            break;
-          }
-        }
-      }
-      
-      // 從 PoP 資料中找對應日期
-      for (const item of popData) {
-        if (item.startTime) {
-          const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-          if (itemDate === targetDate) {
-            foundPop = item;
-            break;
-          }
-        }
-      }
-      
-      // 如果有找到任何資料，就加入預報
-      if (foundWx || foundMinT || foundMaxT) {
-        // 解析天氣描述
-        let weather = "資料讀取中";
-        if (foundWx?.elementValue) {
-          if (Array.isArray(foundWx.elementValue)) {
-            weather = foundWx.elementValue[0]?.value || "未知";
-          }
-        }
+      // 取前5筆作為未來5天
+      for (let i = 0; i < Math.min(5, timeData.length); i++) {
+        const item = timeData[i];
+        const startTime = item.startTime || item.開始時間 || item.dataTime;
         
-        // 解析最低溫
-        let minTemp = "--";
-        if (foundMinT?.elementValue) {
-          if (Array.isArray(foundMinT.elementValue)) {
-            minTemp = foundMinT.elementValue[0]?.value || "--";
+        if (startTime) {
+          const displayDate = startTime.substring(5, 10).replace('-', '/');
+          
+          // 嘗試取得天氣描述
+          let weather = "未知";
+          if (item.elementValue) {
+            if (Array.isArray(item.elementValue)) {
+              weather = item.elementValue[0]?.value || "未知";
+            }
           }
+          
+          weekForecast.push({
+            date: displayDate,
+            weather: weather,
+            minTemp: "--",
+            maxTemp: "--",
+            pop: "--"
+          });
         }
-        
-        // 解析最高溫
-        let maxTemp = "--";
-        if (foundMaxT?.elementValue) {
-          if (Array.isArray(foundMaxT.elementValue)) {
-            maxTemp = foundMaxT.elementValue[0]?.value || "--";
-          }
-        }
-        
-        // 解析降雨機率
-        let pop = "--";
-        if (foundPop?.elementValue) {
-          if (Array.isArray(foundPop.elementValue)) {
-            pop = foundPop.elementValue[0]?.value || "--";
-          }
-        }
-        
-        weekForecast.push({
-          date: targetDate,
-          weather: weather,
-          minTemp: minTemp,
-          maxTemp: maxTemp,
-          pop: pop
-        });
-        
-        console.log(`找到 ${targetDate}: ${weather}, ${minTemp}~${maxTemp}, ${pop}%`);
       }
     }
     
@@ -282,33 +211,16 @@ async function get7DayForecast() {
     if (weekForecast.length > 0) {
       let weekText = "";
       for (const day of weekForecast) {
-        weekText += `${day.date} ${day.weather} ${day.maxTemp}°/${day.minTemp}° ☔${day.pop}%\n`;
+        weekText += `${day.date} ${day.weather}\n`;
       }
       return weekText;
-    } else {
-      // 如果沒有找到對應日期的資料，直接顯示 API 回傳的前5筆資料
-      console.log('找不到對應日期的資料，顯示前5筆 Wx 資料');
-      
-      let weekText = "";
-      for (let i = 0; i < Math.min(5, wxData.length); i++) {
-        const item = wxData[i];
-        if (item.startTime) {
-          const displayDate = item.startTime.substring(5, 10).replace('-', '/');
-          let weather = "未知";
-          if (item.elementValue) {
-            if (Array.isArray(item.elementValue)) {
-              weather = item.elementValue[0]?.value || "未知";
-            }
-          }
-          weekText += `${displayDate} ${weather}\n`;
-        }
-      }
-      return weekText || "無法取得預報資料";
     }
+
+    return "";
 
   } catch (error) {
     console.log("7天預報錯誤：", error.message);
-    return "API 呼叫失敗";
+    return "";
   }
 }
 
@@ -380,7 +292,11 @@ async function getCurrentWeather() {
     result += twoHourText + '\n';
     
     result += `📅 未來 5 天預報\n`;
-    result += weekForecast + '\n';
+    if (weekForecast) {
+      result += weekForecast;
+    } else {
+      result += `目前無資料\n`;
+    }
     
     result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
 
