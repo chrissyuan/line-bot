@@ -116,111 +116,40 @@ async function get7DayForecast() {
   try {
     console.log('開始取得7天的資料...');
     
-    const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
-      `Authorization=${CWA_API_KEY}&` +
-      `locationName=宜蘭縣`
-    );
-
-    console.log('API 回應狀態:', response.data.success);
+    // 嘗試不同的資料集 ID
+    const datasetIds = ['F-D0047-071', 'F-D0047-073', 'F-D0047-001', 'F-D0047-005'];
     
-    // 根據實際的回應結構，資料可能在 result 中
-    if (!response.data.result) {
-      console.log('找不到 result');
-      return "";
-    }
-    
-    // 從 result 中取得 locations
-    // 注意：欄位名稱是中文的！
-    const locations = response.data.result.locations || 
-                      response.data.result.地點 || 
-                      response.data.result.Locations;
-    
-    if (!locations || locations.length === 0) {
-      console.log('找不到 locations');
-      return "";
-    }
-    
-    // 第一個 locations 物件
-    const locationsObj = locations[0];
-    
-    // 取得 location 陣列（可能是 location 或 地點）
-    const locationArray = locationsObj.location || locationsObj.地點;
-    
-    if (!locationArray || locationArray.length === 0) {
-      console.log('找不到 locationArray');
-      return "";
-    }
-    
-    // 宜蘭縣的資料
-    const yilanData = locationArray.find(loc => 
-      loc.locationName === '宜蘭縣' || 
-      loc.地點名稱 === '宜蘭縣' ||
-      loc.LocationName === '宜蘭縣'
-    );
-    
-    if (!yilanData) {
-      console.log('找不到宜蘭縣資料');
-      return "";
-    }
-    
-    console.log('找到宜蘭縣資料');
-    
-    // 取得 weatherElement（可能是 weatherElement 或 天氣元素）
-    const weatherElements = yilanData.weatherElement || yilanData.天氣元素 || [];
-    
-    // 因為沒有指定 elementName，我們需要從回傳的資料中解析
-    // 直接從第一個天氣元素開始取資料
-    let weekForecast = [];
-    
-    // 假設天氣元素中第一個是時間序列
-    if (weatherElements.length > 0) {
-      const firstElement = weatherElements[0];
-      const timeData = firstElement.time || firstElement.時間 || [];
-      
-      console.log(`時間資料筆數: ${timeData.length}`);
-      
-      // 取前5筆作為未來5天
-      for (let i = 0; i < Math.min(5, timeData.length); i++) {
-        const item = timeData[i];
-        const startTime = item.startTime || item.開始時間 || item.dataTime;
+    for (const datasetId of datasetIds) {
+      try {
+        console.log(`嘗試資料集: ${datasetId}`);
         
-        if (startTime) {
-          const displayDate = startTime.substring(5, 10).replace('-', '/');
-          
-          // 嘗試取得天氣描述
-          let weather = "未知";
-          if (item.elementValue) {
-            if (Array.isArray(item.elementValue)) {
-              weather = item.elementValue[0]?.value || "未知";
-            }
-          }
-          
-          weekForecast.push({
-            date: displayDate,
-            weather: weather,
-            minTemp: "--",
-            maxTemp: "--",
-            pop: "--"
-          });
+        const response = await axios.get(
+          `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${datasetId}?` +
+          `Authorization=${CWA_API_KEY}&` +
+          `locationName=宜蘭縣`
+        );
+
+        console.log(`${datasetId} 回應狀態:`, response.data.success);
+        
+        // 直接回傳完整的 API 回應作為除錯訊息
+        const apiResponse = JSON.stringify(response.data, null, 2);
+        console.log(`${datasetId} 完整回應:`, apiResponse.substring(0, 500));
+        
+        // 如果成功，就回傳部分資料作為訊息
+        if (response.data.success === "true") {
+          return `✅ ${datasetId} 成功！請查看 Render 日誌中的完整回應`;
         }
+        
+      } catch (e) {
+        console.log(`${datasetId} 失敗:`, e.message);
       }
     }
     
-    // 組合成文字
-    if (weekForecast.length > 0) {
-      let weekText = "";
-      for (const day of weekForecast) {
-        weekText += `${day.date} ${day.weather}\n`;
-      }
-      return weekText;
-    }
-
-    return "";
+    return "❌ 所有資料集都失敗，請查看 Render 日誌";
 
   } catch (error) {
     console.log("7天預報錯誤：", error.message);
-    return "";
+    return "API 呼叫失敗";
   }
 }
 
@@ -292,11 +221,7 @@ async function getCurrentWeather() {
     result += twoHourText + '\n';
     
     result += `📅 未來 5 天預報\n`;
-    if (weekForecast) {
-      result += weekForecast;
-    } else {
-      result += `目前無資料\n`;
-    }
+    result += weekForecast + '\n';
     
     result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
 
