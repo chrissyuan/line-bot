@@ -62,8 +62,7 @@ async function getCurrentWeather() {
       `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
       `🕒 未來 6 小時區間\n` +
       sixHourText +
-      `\n📅 未來 5 天\n` +
-      weekText +
+    
       `━━━━━━━━━━━━\n資料來源：中央氣象署`
     );
 
