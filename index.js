@@ -88,9 +88,11 @@ async function getCurrentWeather() {
     );
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
-    return "⚠️ 無法取得天氣資料";
-  }
+  console.log("錯誤完整內容：");
+  console.log(error.response?.data || error.message);
+  return "⚠️ 無法取得天氣資料";
+}
+
 }
 
 
