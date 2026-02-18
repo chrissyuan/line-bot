@@ -58,7 +58,7 @@ function getFutureDates(days = 5) {
   // 調整為台灣時間（UTC+8）
   const twTime = new Date(today.getTime() + (8 * 60 * 60 * 1000));
   
-  for (let i = 1; i <= days; i++) {
+  for (let i = 0; i < days; i++) {
     const futureDate = new Date(twTime.getTime() + (i * 24 * 60 * 60 * 1000));
     const month = String(futureDate.getMonth() + 1).padStart(2, '0');
     const day = String(futureDate.getDate()).padStart(2, '0');
@@ -66,24 +66,6 @@ function getFutureDates(days = 5) {
   }
   
   return dates;
-}
-
-// 獲取當前時間的下一個整點
-function getNextHourTime(currentHour, currentMinute) {
-  let nextHour = currentHour;
-  let nextMinute = '00';
-  
-  if (currentMinute < 30) {
-    nextHour = currentHour + 1;
-  } else {
-    nextHour = currentHour + 2;
-  }
-  
-  if (nextHour >= 24) {
-    nextHour = nextHour - 24;
-  }
-  
-  return { hour: nextHour, minute: nextMinute };
 }
 
 // 生成2小時間隔的時間區間
@@ -145,81 +127,143 @@ async function get7DayForecast() {
     console.log('API 回應狀態:', response.data.success);
     
     if (!response.data.records || !response.data.records.locations) {
-      console.log('API 結構錯誤');
+      console.log('API 結構錯誤，完整回應:', JSON.stringify(response.data, null, 2));
       return "";
     }
 
     const locations = response.data.records.locations[0]?.location;
     if (!locations || locations.length === 0) {
+      console.log('找不到 locations 資料');
       return "";
     }
 
     const location = locations[0];
+    console.log('地點:', location.locationName);
     
     const weatherElements = location.weatherElement || [];
+    console.log('找到的天氣元素:', weatherElements.map(e => e.elementName));
     
     const wxData = weatherElements.find(e => e.elementName === "Wx")?.time || [];
     const minTData = weatherElements.find(e => e.elementName === "MinT")?.time || [];
     const maxTData = weatherElements.find(e => e.elementName === "MaxT")?.time || [];
     const popData = weatherElements.find(e => e.elementName === "PoP")?.time || [];
 
+    console.log(`找到資料筆數: Wx=${wxData.length}, MinT=${minTData.length}, MaxT=${maxTData.length}, PoP=${popData.length}`);
+    
+    // 如果有 Wx 資料，顯示第一筆的格式
+    if (wxData.length > 0) {
+      console.log('Wx 第一筆資料格式:', JSON.stringify(wxData[0], null, 2));
+    }
+
     const futureDates = getFutureDates(5);
+    console.log('目標日期:', futureDates);
     
     let weekForecast = [];
     
-    for (let i = 0; i < futureDates.length; i++) {
-      const targetDate = futureDates[i];
+    // 直接使用 API 回傳的資料，按照時間順序取前5天
+    // 每天可能有多筆資料，我們取每天的第一筆
+    const dailyData = {};
+    
+    // 先從 Wx 資料中找出所有日期
+    for (const item of wxData) {
+      const startTime = item.startTime || item.dataTime;
+      if (!startTime) continue;
       
-      const dayWx = wxData.find(item => {
-        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-        return itemDate === targetDate;
-      });
+      const dateStr = startTime.substring(0, 10).replace(/-/g, '/');
+      const displayDate = startTime.substring(5, 10).replace('-', '/');
       
-      const dayMinT = minTData.find(item => {
-        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-        return itemDate === targetDate;
-      });
-      
-      const dayMaxT = maxTData.find(item => {
-        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-        return itemDate === targetDate;
-      });
-      
-      const dayPop = popData.find(item => {
-        const itemDate = item.startTime.substring(5, 10).replace('-', '/');
-        return itemDate === targetDate;
-      });
-      
-      // 只有當所有必要資料都存在時才加入
-      if (dayWx && dayMinT && dayMaxT) {
-        let weather = "";
-        if (Array.isArray(dayWx.elementValue)) {
-          weather = dayWx.elementValue[0]?.value || "";
-        }
-        
-        let minTemp = "";
-        if (Array.isArray(dayMinT.elementValue)) {
-          minTemp = dayMinT.elementValue[0]?.value || "";
-        }
-        
-        let maxTemp = "";
-        if (Array.isArray(dayMaxT.elementValue)) {
-          maxTemp = dayMaxT.elementValue[0]?.value || "";
-        }
-        
-        let pop = "";
-        if (dayPop && Array.isArray(dayPop.elementValue)) {
-          pop = dayPop.elementValue[0]?.value || "";
-        }
-        
-        weekForecast.push({
-          date: targetDate,
-          weather: weather,
-          minTemp: minTemp,
-          maxTemp: maxTemp,
-          pop: pop
-        });
+      if (!dailyData[displayDate]) {
+        dailyData[displayDate] = {
+          date: displayDate,
+          wx: item,
+          minT: null,
+          maxT: null,
+          pop: null
+        };
       }
+    }
+    
+    // 加入 MinT 資料
+    for (const item of minTData) {
+      const startTime = item.startTime || item.dataTime;
+      if (!startTime) continue;
+      const displayDate = startTime.substring(5, 10).replace('-', '/');
+      if (dailyData[displayDate]) {
+        dailyData[displayDate].minT = item;
+      }
+    }
+    
+    // 加入 MaxT 資料
+    for (const item of maxTData) {
+      const startTime = item.startTime || item.dataTime;
+      if (!startTime) continue;
+      const displayDate = startTime.substring(5, 10).replace('-', '/');
+      if (dailyData[displayDate]) {
+        dailyData[displayDate].maxT = item;
+      }
+    }
+    
+    // 加入 PoP 資料
+    for (const item of popData) {
+      const startTime = item.startTime || item.dataTime;
+      if (!startTime) continue;
+      const displayDate = startTime.substring(5, 10).replace('-', '/');
+      if (dailyData[displayDate]) {
+        dailyData[displayDate].pop = item;
+      }
+    }
+    
+    // 將資料轉換為陣列並排序
+    const sortedDates = Object.keys(dailyData).sort();
+    console.log('API 回傳的日期:', sortedDates);
+    
+    // 取前5天的資料
+    for (let i = 0; i < Math.min(5, sortedDates.length); i++) {
+      const dateStr = sortedDates[i];
+      const data = dailyData[dateStr];
+      
+      // 解析天氣描述
+      let weather = "";
+      if (data.wx?.elementValue) {
+        if (Array.isArray(data.wx.elementValue)) {
+          weather = data.wx.elementValue[0]?.value || 
+                   data.wx.elementValue[0]?.measures || "";
+        }
+      }
+      
+      // 解析最低溫
+      let minTemp = "";
+      if (data.minT?.elementValue) {
+        if (Array.isArray(data.minT.elementValue)) {
+          minTemp = data.minT.elementValue[0]?.value || "";
+        }
+      }
+      
+      // 解析最高溫
+      let maxTemp = "";
+      if (data.maxT?.elementValue) {
+        if (Array.isArray(data.maxT.elementValue)) {
+          maxTemp = data.maxT.elementValue[0]?.value || "";
+        }
+      }
+      
+      // 解析降雨機率
+      let pop = "";
+      if (data.pop?.elementValue) {
+        if (Array.isArray(data.pop.elementValue)) {
+          pop = data.pop.elementValue[0]?.value || "";
+        }
+      }
+      
+      weekForecast.push({
+        date: dateStr,
+        weather: weather,
+        minTemp: minTemp,
+        maxTemp: maxTemp,
+        pop: pop
+      });
+      
+      console.log(`日期 ${dateStr}: 天氣=${weather}, 低溫=${minTemp}, 高溫=${maxTemp}, 降雨=${pop}`);
     }
     
     if (weekForecast.length > 0) {
@@ -236,11 +280,16 @@ async function get7DayForecast() {
       }
       return weekText;
     } else {
+      console.log('無法組合成預報文字');
       return "";
     }
 
   } catch (error) {
     console.log("7天預報錯誤：", error.message);
+    if (error.response) {
+      console.log("回應狀態：", error.response.status);
+      console.log("回應資料：", error.response.data);
+    }
     return "";
   }
 }
@@ -279,7 +328,6 @@ async function getCurrentWeather() {
       const slot = timeSlots[i];
       
       // 根據時間找到對應的預報資料
-      // 36小時預報是12小時間隔，所以我們需要找到最接近的時段
       let bestMatch = null;
       let smallestDiff = Infinity;
       
@@ -342,6 +390,8 @@ async function getCurrentWeather() {
     if (weekForecast) {
       result += `📅 未來 5 天預報\n`;
       result += weekForecast;
+    } else {
+      result += `📅 未來 5 天預報\n目前無資料\n`;
     }
     
     result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
