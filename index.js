@@ -24,27 +24,38 @@ async function getCurrentWeather() {
     }
 
     // ===== 7天預報 API =====
-    const res7 = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-    );
+const res7 = await axios.get(
+  `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
+);
 
-    const location7 = res7.data.records.locations[0].location[0];
-    const elements7 = location7.weatherElement;
+if (!res7.data.records.locations) {
+  return "⚠️ 7天預報 API 結構錯誤";
+}
 
-    const wx7 = elements7.find(e => e.elementName === "Wx").time;
-    const minT7 = elements7.find(e => e.elementName === "MinT").time;
-    const maxT7 = elements7.find(e => e.elementName === "MaxT").time;
+const locations = res7.data.records.locations[0].location;
 
-    let weekText = "";
+if (!locations || locations.length === 0) {
+  return "⚠️ 找不到宜蘭縣資料";
+}
 
-    for (let i = 0; i < 5; i++) {
-      const date = wx7[i].startTime.substring(5, 10);
-      const weather = wx7[i].parameter.parameterName;
-      const minTemp = minT7[i].parameter.parameterName;
-      const maxTemp = maxT7[i].parameter.parameterName;
+const location7 = locations[0];
+const elements7 = location7.weatherElement;
 
-      weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
-    }
+const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
+const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
+const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
+
+let weekText = "";
+
+for (let i = 0; i < 5 && i < wx7.length; i++) {
+  const date = wx7[i].startTime.substring(5, 10);
+  const weather = wx7[i].elementValue[0].value;
+  const minTemp = minT7[i]?.elementValue[0]?.value || "--";
+  const maxTemp = maxT7[i]?.elementValue[0]?.value || "--";
+
+  weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
+}
+
 
     return (
       `📍 宜蘭縣天氣總覽\n` +
