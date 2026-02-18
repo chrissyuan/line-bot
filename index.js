@@ -1,27 +1,23 @@
 const express = require("express");
 const line = require("@line/bot-sdk");
+const axios = require("axios");
 
 const app = express();
 
-// 🔐 LINE 設定（先直接寫死，確認成功後再改成環境變數）
 const config = {
-  channelAccessToken:
-    "40JypbFdXAnaWQhvg5CvCm+2z5PmBiAACNFf+OVmXinaBER9vJYi1Ptmp5gFLuaIC5osmre/YT3txK2LDfGJtr PLaY66POtPCjc/7A38O8YvI+8C8ly/faM6sWzcAy11ZInTkBmDjfibl6DW4Q99+AdB04t89/1O/w1cDnyilFU=",
-  channelSecret: "357b30a4ab210bafd6617371519020b0"
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET
 };
+
+const CWA_API_KEY = process.env.CWA_API_KEY;
 
 const client = new line.Client(config);
 
-// 👉 給 Render 用的首頁（不再黑畫面，純測試）
 app.get("/", (req, res) => {
-  res.send("LINE Bot is running ✅");
+  res.send("LINE Weather Bot Running ✅");
 });
 
-// 👉 Webhook（LINE 只會打這裡）
 app.post("/webhook", line.middleware(config), (req, res) => {
-  console.log("✅ Webhook hit");
-  console.log(JSON.stringify(req.body));
-
   Promise.all(req.body.events.map(handleEvent))
     .then(() => res.sendStatus(200))
     .catch((err) => {
@@ -30,37 +26,47 @@ app.post("/webhook", line.middleware(config), (req, res) => {
     });
 });
 
-function handleEvent(event) {
+async function getCurrentWeather() {
+  try {
+    const response = await axios.get(
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=${CWA_API_KEY}&LocationName=宜蘭`
+    );
+
+    const location = response.data.records.location[0];
+    const elements = location.weatherElement;
+
+    const temp = elements.find(e => e.elementName === "TEMP").elementValue;
+    const humd = elements.find(e => e.elementName === "HUMD").elementValue;
+
+    return `🌤 宜蘭目前天氣\n🌡 溫度：${temp}°C\n💧 濕度：${Math.round(humd * 100)}%`;
+  } catch (error) {
+    console.error(error);
+    return "⚠️ 無法取得即時天氣資料";
+  }
+}
+
+async function handleEvent(event) {
   if (event.type !== "message" || event.message.type !== "text") {
     return Promise.resolve(null);
   }
 
   const msg = event.message.text.trim();
-  let reply = "";
 
-  if (msg === "天氣") {
-    reply = "☀️ 宜蘭今日天氣：多雲，記得帶雨具 ☂️";
-  } else if (msg === "宜蘭景點") {
-    reply = "📍 宜蘭景點推薦：礁溪溫泉、梅花湖、蘭陽博物館";
-  } else if (msg === "宜蘭美食") {
-    reply = "🍜 宜蘭美食推薦：三星蔥油餅、卜肉、鴨賞";
-  } else {
-    reply =
-      "🤖 可用指令：\n" +
-      "1️⃣ 天氣\n" +
-      "2️⃣ 宜蘭景點\n" +
-      "3️⃣ 宜蘭美食\n\n" +
-      "請直接輸入關鍵字";
+  if (msg === "現在天氣") {
+    const weather = await getCurrentWeather();
+    return client.replyMessage(event.replyToken, {
+      type: "text",
+      text: weather
+    });
   }
 
   return client.replyMessage(event.replyToken, {
     type: "text",
-    text: reply
+    text: "請輸入：現在天氣"
   });
 }
 
-// 🚀 啟動伺服器（Render 會自動給 PORT）
 const port = process.env.PORT || 10000;
 app.listen(port, () => {
-  console.log("LINE Bot 伺服器運行在 port", port);
+  console.log("Weather Bot running on port", port);
 });
