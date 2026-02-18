@@ -52,27 +52,7 @@ async function getCurrentWeather() {
       sixHourText += `${start}-${end} ${weather} ☔${rain}%\n`;
     }
 
-    // 7天預報
-    const res7 = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-    );
-
-    const location7 = res7.data.records.locations[0].location[0];
-    const weather7 = location7.weatherElement;
-
-    const wx7 = weather7.find(e => e.elementName === "Wx").time;
-    const minT7 = weather7.find(e => e.elementName === "MinT").time;
-    const maxT7 = weather7.find(e => e.elementName === "MaxT").time;
-
-    let weekText = "";
-    for (let i = 0; i < 5; i++) {
-      const date = wx7[i].startTime.substring(5, 10);
-      const weather = wx7[i].parameter.parameterName;
-      const minTemp = minT7[i].parameter.parameterName;
-      const maxTemp = maxT7[i].parameter.parameterName;
-
-      weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
-    }
+    
 
     return (
       `📍 宜蘭縣天氣總覽\n` +
