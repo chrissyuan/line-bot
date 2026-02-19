@@ -74,7 +74,6 @@ async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
     
-    // 使用 F-D0047-001
     debugText += `📡 F-D0047-001 (礁溪鄉):\n`;
     try {
       const response = await axios.get(
@@ -94,12 +93,6 @@ async function getDebugInfo() {
           if (firstLoc.Location) {
             debugText += `Location 長度: ${firstLoc.Location.length}\n`;
             
-            // 顯示所有地點名稱
-            debugText += `所有地點:\n`;
-            firstLoc.Location.forEach((loc, index) => {
-              debugText += `  ${index + 1}. ${loc.LocationName}\n`;
-            });
-            
             // 找礁溪鄉
             const jiaoxi = firstLoc.Location.find(l => l.LocationName === '礁溪鄉');
             if (jiaoxi) {
@@ -109,22 +102,25 @@ async function getDebugInfo() {
                 const elements = jiaoxi.WeatherElement.map(e => e.ElementName).join(', ');
                 debugText += `天氣元素: ${elements}\n`;
                 
+                // 檢查降雨機率
                 const pop = jiaoxi.WeatherElement.find(e => e.ElementName === '3小時降雨機率');
                 if (pop && pop.Time) {
                   debugText += `降雨機率筆數: ${pop.Time.length}\n`;
                   if (pop.Time.length > 0) {
                     debugText += `第一筆時間: ${pop.Time[0].StartTime}\n`;
-                    debugText += `第一筆數值: ${pop.Time[0].ElementValue?.[0]?.Value}%\n`;
+                    debugText += `第一筆數值結構: ${JSON.stringify(pop.Time[0].ElementValue)}\n`;
                   }
                 }
                 
+                // 檢查溫度
                 const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
+                  if (temp.Time.length > 0) {
+                    debugText += `第一筆溫度結構: ${JSON.stringify(temp.Time[0].ElementValue)}\n`;
+                  }
                 }
               }
-            } else {
-              debugText += `❌ 找不到礁溪鄉\n`;
             }
           }
         }
@@ -142,6 +138,27 @@ async function getDebugInfo() {
   } catch (error) {
     return `除錯失敗: ${error.message}`;
   }
+}
+
+// 安全地取得數值
+function getElementValue(elementValue) {
+  if (!elementValue) return null;
+  
+  // 如果是陣列，取第一個
+  if (Array.isArray(elementValue)) {
+    if (elementValue.length > 0) {
+      // 嘗試不同的屬性名稱
+      return elementValue[0]?.Value || elementValue[0]?.value || elementValue[0]?.數值 || null;
+    }
+  }
+  
+  // 如果是物件
+  if (typeof elementValue === 'object') {
+    return elementValue.Value || elementValue.value || elementValue.數值 || null;
+  }
+  
+  // 如果是直接值
+  return elementValue;
 }
 
 // 計算溫度平均值
@@ -198,10 +215,9 @@ async function getHourlyForecast() {
       return { temp: null, pop: null };
     }
     
-    // 找到礁溪鄉
     const jiaoxiData = locationArray.find(l => l.LocationName === '礁溪鄉');
     if (!jiaoxiData) {
-      console.log('找不到礁溪鄉，可用的地點:', locationArray.map(l => l.LocationName));
+      console.log('找不到礁溪鄉');
       return { temp: null, pop: null };
     }
     
@@ -209,12 +225,10 @@ async function getHourlyForecast() {
     
     const weatherElements = jiaoxiData.WeatherElement || [];
     
-    // 注意：這裡的 ElementName 是中文！
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
     const popData = weatherElements.find(e => e.ElementName === '3小時降雨機率')?.Time || [];
-    const wxData = weatherElements.find(e => e.ElementName === '天氣現象')?.Time || [];
     
-    console.log(`找到資料 - 溫度:${tempData.length}, 降雨:${popData.length}, 天氣:${wxData.length}`);
+    console.log(`找到資料 - 溫度:${tempData.length}, 降雨:${popData.length}`);
     
     // 獲取當前時間
     const now = new Date();
@@ -263,15 +277,15 @@ async function getHourlyForecast() {
               dayMark = " (跨日)";
             }
             
-            const temp = tempItem.ElementValue?.[0]?.Value;
-            const pop = popItem?.ElementValue?.[0]?.Value;
+            // 安全地取得數值
+            const temp = getElementValue(tempItem.ElementValue);
+            const pop = getElementValue(popItem?.ElementValue);
             
             // 溫度文字
-            let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark}`;
             if (temp) {
-              tempSlot += ` ${temp}°`;
+              let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark} ${temp}°`;
+              tempText += tempSlot + '\n';
             }
-            tempText += tempSlot + '\n';
             
             // 降雨文字
             if (pop && pop !== '--') {
@@ -328,7 +342,6 @@ async function get7DayForecast() {
     
     const weatherElements = jiaoxiData.WeatherElement || [];
     
-    // 注意：ElementName 是中文
     const wxData = weatherElements.find(e => e.ElementName === '天氣現象')?.Time || [];
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
     const popData = weatherElements.find(e => e.ElementName === '3小時降雨機率')?.Time || [];
@@ -340,57 +353,45 @@ async function get7DayForecast() {
     for (let i = 0; i < futureDates.length; i++) {
       const targetDate = futureDates[i];
       
+      // 找每天的資料（取當天中午左右的資料）
       const wx = wxData.find(item => {
         const startTime = item.StartTime || item.DataTime;
-        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+        if (!startTime) return false;
+        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        const itemHour = parseInt(startTime.substring(11, 13));
+        return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
       });
       
       const temp = tempData.find(item => {
         const startTime = item.StartTime || item.DataTime;
-        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+        if (!startTime) return false;
+        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        const itemHour = parseInt(startTime.substring(11, 13));
+        return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
       });
       
       const pop = popData.find(item => {
         const startTime = item.StartTime || item.DataTime;
-        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+        if (!startTime) return false;
+        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        const itemHour = parseInt(startTime.substring(11, 13));
+        return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
       });
       
-      if (wx || temp) {
-        let weather = "";
-        if (wx?.ElementValue) {
-          if (Array.isArray(wx.ElementValue)) {
-            weather = wx.ElementValue[0]?.Value || "";
-          }
-        }
-        
-        const temperature = temp?.ElementValue?.[0]?.Value;
-        const rain = pop?.ElementValue?.[0]?.Value;
-        
-        weekForecast.push({
-          date: targetDate,
-          weather: weather,
-          temp: temperature,
-          pop: rain
-        });
+      const weather = getElementValue(wx?.ElementValue) || '';
+      const temperature = getElementValue(temp?.ElementValue);
+      const rain = getElementValue(pop?.ElementValue);
+      
+      if (temperature || weather) {
+        let dayText = targetDate;
+        if (weather) dayText += ` ${weather}`;
+        if (temperature) dayText += ` ${temperature}°`;
+        if (rain && rain !== '--') dayText += ` ☔${rain}%`;
+        weekForecast.push(dayText);
       }
     }
     
-    if (weekForecast.length > 0) {
-      let weekText = "";
-      for (const day of weekForecast) {
-        weekText += `${day.date} ${day.weather}`;
-        if (day.temp) {
-          weekText += ` ${day.temp}°`;
-        }
-        if (day.pop && day.pop !== '--') {
-          weekText += ` ☔${day.pop}%`;
-        }
-        weekText += '\n';
-      }
-      return weekText;
-    }
-    
-    return "";
+    return weekForecast.join('\n');
 
   } catch (error) {
     console.log("7天預報錯誤：", error.message);
