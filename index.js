@@ -105,8 +105,8 @@ async function getDebugInfo() {
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
                   if (temp.Time.length > 0) {
-                    // 顯示第一筆溫度的完整結構
-                    debugText += `第一筆溫度完整結構: ${JSON.stringify(temp.Time[0])}\n`;
+                    debugText += `第一筆時間欄位: ${Object.keys(temp.Time[0]).join(', ')}\n`;
+                    debugText += `第一筆時間值: ${temp.Time[0].DataTime}\n`;
                   }
                 }
               }
@@ -182,18 +182,19 @@ function getElementValue(elementValue) {
   return null;
 }
 
-// 安全地取得時間
+// 安全地取得時間 - 修正版
 function getTimeString(timeObj) {
   if (!timeObj) return null;
   
-  // 嘗試各種可能的時間欄位名稱
-  return timeObj.StartTime || 
-         timeObj.startTime || 
-         timeObj.開始時間 || 
-         timeObj.DataTime || 
-         timeObj.dataTime || 
-         timeObj.資料時間 ||
-         null;
+  // 根據實際看到的欄位名稱
+  if (timeObj.DataTime) return timeObj.DataTime;
+  if (timeObj.dataTime) return timeObj.dataTime;
+  if (timeObj.StartTime) return timeObj.StartTime;
+  if (timeObj.startTime) return timeObj.startTime;
+  if (timeObj.開始時間) return timeObj.開始時間;
+  if (timeObj.資料時間) return timeObj.資料時間;
+  
+  return null;
 }
 
 // 獲取未來5天的日期（格式：MM/DD）
@@ -260,11 +261,6 @@ async function getHourlyTemperature() {
       return null;
     }
     
-    // 顯示前幾筆溫度資料的完整結構
-    for (let i = 0; i < Math.min(3, tempData.length); i++) {
-      console.log(`溫度[${i}] 完整結構:`, JSON.stringify(tempData[i]));
-    }
-    
     // 獲取當前時間
     const now = new Date();
     const twTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
@@ -282,7 +278,14 @@ async function getHourlyTemperature() {
       startHour = currentHour + 2;
     }
     
-    console.log(`起始小時: ${startHour}`);
+    // 如果起始小時 >= 24，減去24並標記為明天
+    let dayOffset = 0;
+    if (startHour >= 24) {
+      startHour -= 24;
+      dayOffset = 1;
+    }
+    
+    console.log(`起始小時: ${startHour}, 日期偏移: ${dayOffset}`);
     
     let tempText = "";
     let foundCount = 0;
@@ -297,12 +300,30 @@ async function getHourlyTemperature() {
           const itemHour = parseInt(timeStr.substring(11, 13));
           const itemDate = timeStr.substring(5, 10).replace('-', '/');
           
-          const isToday = itemDate === currentDate;
+          // 計算日期差異
+          const [itemMonth, itemDay] = itemDate.split('/').map(Number);
+          const [currMonth, currDay] = currentDate.split('/').map(Number);
           
-          console.log(`檢查: ${itemDate} ${itemHour}:00, isToday=${isToday}, 已找到=${foundCount}`);
+          const itemDateObj = new Date(2026, itemMonth-1, itemDay);
+          const currDateObj = new Date(2026, currMonth-1, currDay);
           
-          const isFuture = (isToday && itemHour >= startHour) || 
-                          (!isToday && foundCount > 0);
+          const dayDiff = Math.floor((itemDateObj - currDateObj) / (24 * 60 * 60 * 1000));
+          
+          const isToday = dayDiff === 0;
+          const isTomorrow = dayDiff === 1;
+          
+          console.log(`檢查: ${itemDate} ${itemHour}:00, dayDiff=${dayDiff}, isToday=${isToday}, isTomorrow=${isTomorrow}`);
+          
+          // 判斷是否為未來時段
+          let isFuture = false;
+          
+          if (isToday) {
+            // 今天的資料：要 >= 起始小時
+            isFuture = itemHour >= startHour;
+          } else if (dayDiff > 0) {
+            // 未來的資料：只要還沒找到5筆就可以
+            isFuture = foundCount < 5;
+          }
           
           if (isFuture) {
             const endHour = (itemHour + 2) % 24;
@@ -310,8 +331,10 @@ async function getHourlyTemperature() {
             const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
             
             let dayMark = "";
-            if (!isToday) {
+            if (dayDiff === 1) {
               dayMark = " (明日)";
+            } else if (dayDiff > 1) {
+              dayMark = ` (+${dayDiff})`;
             } else if (endHour < itemHour) {
               dayMark = " (跨日)";
             }
@@ -329,8 +352,6 @@ async function getHourlyTemperature() {
         } catch (e) {
           console.log('解析時間錯誤:', e.message);
         }
-      } else {
-        console.log(`溫度[${i}] 沒有時間欄位`);
       }
     }
     
@@ -467,6 +488,13 @@ function generate2HourSlots() {
     startHour = currentHour + 2;
   }
   
+  // 處理跨日
+  let dayOffset = 0;
+  if (startHour >= 24) {
+    startHour -= 24;
+    dayOffset = 1;
+  }
+  
   for (let i = 0; i < 5; i++) {
     const slotStartHour = (startHour + (i * 2)) % 24;
     const slotEndHour = (slotStartHour + 2) % 24;
@@ -475,7 +503,7 @@ function generate2HourSlots() {
     const endTimeStr = `${String(slotEndHour).padStart(2, '0')}:00`;
     
     let dayMark = "";
-    if (slotStartHour < currentHour && i > 0) {
+    if (dayOffset + Math.floor((startHour + i * 2) / 24) > 0) {
       dayMark = " (明日)";
     } else if (slotEndHour < slotStartHour) {
       dayMark = " (跨日)";
