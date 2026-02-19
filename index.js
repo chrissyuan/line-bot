@@ -23,132 +23,83 @@ function verifyLineSignature(req) {
 }
 
 // ===== 取得天氣 =====
-async function getWeather() {
+async function getWeather36hr(locationName) {
   try {
+    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=${encodeURIComponent(locationName)}`;
 
-    // ===== 36小時預報 =====
-    const res36 = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-    );
+    const res = await axios.get(url);
+    const location = res.data.records.location[0];
 
-    const location36 = res36.data.records.location[0];
-    const elements36 = location36.weatherElement;
-
-    const wx = elements36.find(e => e.elementName === "Wx").time;
-    const pop = elements36.find(e => e.elementName === "PoP").time;
-    const minT = elements36.find(e => e.elementName === "MinT").time;
-    const maxT = elements36.find(e => e.elementName === "MaxT").time;
+    const wx = location.weatherElement.find(e => e.elementName === "Wx").time;
+    const pop = location.weatherElement.find(e => e.elementName === "PoP").time;
+    const minT = location.weatherElement.find(e => e.elementName === "MinT").time;
+    const maxT = location.weatherElement.find(e => e.elementName === "MaxT").time;
 
     const now = new Date();
-    const nowStr = now.getFullYear() + "/" +
-      String(now.getMonth()+1).padStart(2,"0") + "/" +
-      String(now.getDate()).padStart(2,"0") + " " +
-      String(now.getHours()).padStart(2,"0") + ":" +
-      String(now.getMinutes()).padStart(2,"0");
+    const nowStr = now.toLocaleString("zh-TW", { hour12: false });
 
-    // ===== 找目前區間 =====
-    const currentIndex = wx.findIndex(t => {
+    // ========= 找目前時段 =========
+    let currentIndex = wx.findIndex(t => {
       const start = new Date(t.startTime);
       const end = new Date(t.endTime);
       return now >= start && now < end;
     });
 
-    let currentTemp = "--";
-    let currentRain = "--";
-    let currentWeather = "--";
+    if (currentIndex === -1) currentIndex = 0;
 
-    if (currentIndex !== -1) {
-      const min = parseInt(minT[currentIndex].parameter.parameterName);
-      const max = parseInt(maxT[currentIndex].parameter.parameterName);
-
-      currentTemp = Math.round((min + max) / 2);
-      currentRain = pop[currentIndex].parameter.parameterName;
-      currentWeather = wx[currentIndex].parameter.parameterName;
-    }
-
-    // ===== 未來10小時 =====
-    let forecast10 = "";
-    let currentTime = new Date(now);
-    const endTime = new Date(now.getTime() + 10 * 60 * 60 * 1000);
-
-    while (currentTime < endTime) {
-
-      const nextTime = new Date(currentTime.getTime() + 2 * 60 * 60 * 1000);
-
-      const index = wx.findIndex(t => {
-        const start = new Date(t.startTime);
-        const end = new Date(t.endTime);
-        return currentTime >= start && currentTime < end;
-      });
-
-      if (index !== -1) {
-
-        const min = parseInt(minT[index].parameter.parameterName);
-        const max = parseInt(maxT[index].parameter.parameterName);
-        const avgTemp = Math.round((min + max) / 2);
-
-        const weather = wx[index].parameter.parameterName;
-        const rain = pop[index].parameter.parameterName;
-
-        const startStr = String(currentTime.getHours()).padStart(2,"0") + ":00";
-        const endStr = String(nextTime.getHours()).padStart(2,"0") + ":00";
-
-        forecast10 += `${startStr}-${endStr} ${avgTemp}°C ☔${rain}% ${weather}\n`;
-      }
-
-      currentTime = nextTime;
-    }
-
-    // ===== 5天預報 =====
-    const res7 = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
+    const currentTemp = Math.round(
+      (parseInt(minT[currentIndex].parameter.parameterName) +
+       parseInt(maxT[currentIndex].parameter.parameterName)) / 2
     );
 
-    const locations = res7.data.records?.locations?.[0]?.location;
-    let forecast5 = "";
+    const currentRain = pop[currentIndex].parameter.parameterName;
+    const currentWeather = wx[currentIndex].parameter.parameterName;
 
-    if (locations && locations.length > 0) {
+    // ========= 未來 3 個逐 3 小時 =========
+    let futureText = "";
 
-      const elements7 = locations[0].weatherElement;
+    for (let i = currentIndex + 1; i <= currentIndex + 3 && i < wx.length; i++) {
 
-      const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
-      const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
-      const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
-      const pop7 = elements7.find(e => e.elementName === "PoP12h")?.time || [];
+      const start = new Date(wx[i].startTime);
+      const end = new Date(wx[i].endTime);
 
-      for (let i = 0; i < 5 && i < wx7.length; i++) {
+      const timeStr =
+        start.getHours().toString().padStart(2, "0") + ":00-" +
+        end.getHours().toString().padStart(2, "0") + ":00";
 
-        const date = wx7[i].startTime.substring(5,10);
-        const weather = wx7[i].elementValue[0].value;
-        const minTemp = minT7[i].elementValue[0].value;
-        const maxTemp = maxT7[i].elementValue[0].value;
-        const rain = pop7[i]?.elementValue?.[0]?.value || "--";
+      const temp = Math.round(
+        (parseInt(minT[i].parameter.parameterName) +
+         parseInt(maxT[i].parameter.parameterName)) / 2
+      );
 
-        forecast5 += `${date} ${minTemp}°~${maxTemp}° ☔${rain}% ${weather}\n`;
-      }
+      const rain = pop[i].parameter.parameterName;
+      const weather = wx[i].parameter.parameterName;
+
+      futureText += `${timeStr} ${getWeatherEmoji(weather)} ${temp}°C ☔${rain}% ${weather}\n`;
     }
 
-    // ===== 最終輸出 =====
-    return (
-`🕒 ${nowStr}
+    // ========= 未來5天 =========
+    const fiveDayData = await getFiveDayWeather(locationName);
+
+    return `🕒 ${nowStr}
 
 📌 目前天氣
-${currentTemp}°C ☔${currentRain}% ${currentWeather}
+${getWeatherEmoji(currentWeather)} ${currentTemp}°C ☔${currentRain}% ${currentWeather}
 
-📈 未來10小時
-${forecast10}
+📈 未來9小時 (逐3小時)
+${futureText}
 
 📅 未來5天預報
-${forecast5}
+${fiveDayData}
 
-資料來源：中央氣象署`
-    );
+資料來源：中央氣象署`;
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
+    console.log("錯誤:", error.message);
     return "⚠️ 無法取得天氣資料";
   }
 }
+
 
 // ===== LINE Webhook =====
 app.post("/webhook", async (req, res) => {
