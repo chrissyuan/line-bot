@@ -22,8 +22,8 @@ app.post('/webhook', line.middleware(lineConfig), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
     .catch((err) => {
-      console.error(err);
-      res.status(500).end();
+      console.error('Webhook 錯誤:', err);
+      res.status(200).end(); // 始終回傳200給Line
     });
 });
 
@@ -36,12 +36,26 @@ async function handleEvent(event) {
   const userMessage = event.message.text;
   
   if (userMessage.includes('天氣') || userMessage.includes('宜蘭')) {
-    const weatherData = await getCurrentWeather();
-    
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: weatherData
-    });
+    try {
+      const weatherData = await getCurrentWeather();
+      
+      // 確保訊息不為空
+      const replyText = weatherData || '無法取得天氣資料';
+      
+      // 限制訊息長度（Line 限制 5000 字符）
+      const limitedText = replyText.length > 5000 ? replyText.substring(0, 5000) + '...' : replyText;
+      
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: limitedText
+      });
+    } catch (error) {
+      console.error('取得天氣資料錯誤:', error);
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: '⚠️ 取得天氣資料時發生錯誤'
+      });
+    }
   }
   
   return client.replyMessage(event.replyToken, {
@@ -75,7 +89,47 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 從 F-D0047-073 API 獲取2小時間隔的預報（支援中文欄位）
+// 生成2小時間隔的時間區間（備用方案）
+function generate2HourSlots() {
+  const slots = [];
+  const now = new Date();
+  const twTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+  const currentHour = twTime.getHours();
+  const currentMinute = twTime.getMinutes();
+  
+  let startHour = currentHour;
+  if (currentMinute < 30) {
+    startHour = currentHour + 1;
+  } else {
+    startHour = currentHour + 2;
+  }
+  
+  for (let i = 0; i < 5; i++) {
+    const slotStartHour = (startHour + (i * 2)) % 24;
+    const slotEndHour = (slotStartHour + 2) % 24;
+    
+    const startTimeStr = `${String(slotStartHour).padStart(2, '0')}:00`;
+    const endTimeStr = `${String(slotEndHour).padStart(2, '0')}:00`;
+    
+    let dayMark = "";
+    if (slotStartHour < currentHour && i > 0) {
+      dayMark = " (明日)";
+    } else if (slotEndHour < slotStartHour) {
+      dayMark = " (跨日)";
+    }
+    
+    slots.push({
+      start: startTimeStr,
+      end: endTimeStr,
+      dayMark: dayMark,
+      startHour: slotStartHour
+    });
+  }
+  
+  return slots;
+}
+
+// 從 F-D0047-073 API 獲取2小時間隔的預報
 async function get2HourForecast() {
   try {
     console.log('開始取得2小時間隔預報（礁溪鄉）...');
@@ -83,180 +137,13 @@ async function get2HourForecast() {
     const response = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-073?` +
       `Authorization=${CWA_API_KEY}&` +
-      `locationName=礁溪鄉&`
+      `locationName=礁溪鄉`
     );
 
     console.log('2小時 API 回應狀態:', response.data.success);
     
-    // 根據實際回應，資料在 result 中
-    if (!response.data.result) {
-      console.log('找不到 result');
-      return null;
-    }
-    
-    // 從 result 中取得 locations（注意是中文欄位）
-    const locationsList = response.data.result.locations || response.data.result.Locations;
-    if (!locationsList || locationsList.length === 0) {
-      console.log('找不到 locations');
-      return null;
-    }
-    
-    console.log(`Locations 陣列長度: ${locationsList.length}`);
-    
-    // 遍歷所有 locations 找到礁溪鄉
-    let targetLocation = null;
-    let targetLocationName = '';
-    
-    for (const locationsObj of locationsList) {
-      const locationArray = locationsObj.Location || locationsObj.地點;
-      if (locationArray && locationArray.length > 0) {
-        for (const loc of locationArray) {
-          const locName = loc.LocationName || loc.地點名稱;
-          console.log('找到地點:', locName);
-          
-          // 檢查是否為礁溪鄉（可能的名稱格式）
-          if (locName && (locName.includes('礁溪') || locName === '礁溪鄉')) {
-            targetLocation = loc;
-            targetLocationName = locName;
-            break;
-          }
-        }
-      }
-      if (targetLocation) break;
-    }
-    
-    if (!targetLocation) {
-      console.log('找不到礁溪鄉，嘗試找第一個地點');
-      // 如果找不到礁溪鄉，就用第一個地點
-      const firstLocationsObj = locationsList[0];
-      const firstLocationArray = firstLocationsObj.Location || firstLocationsObj.地點;
-      if (firstLocationArray && firstLocationArray.length > 0) {
-        targetLocation = firstLocationArray[0];
-        targetLocationName = targetLocation.LocationName || targetLocation.地點名稱 || '未知';
-        console.log('使用第一個地點:', targetLocationName);
-      } else {
-        return null;
-      }
-    }
-    
-    console.log('使用地點:', targetLocationName);
-    
-    // 取得天氣元素（注意是中文欄位）
-    const weatherElements = targetLocation.WeatherElement || targetLocation.天氣元素 || [];
-    console.log('天氣元素:', weatherElements.map(e => e.ElementName || e.元素名稱));
-    
-    // 定義中文和英文的欄位對應
-    const wxData = weatherElements.find(e => 
-      (e.ElementName === 'Wx' || e.元素名稱 === '天氣現象' || e.元素名稱 === '天氣預報綜合描述')
-    )?.Time || weatherElements.find(e => e.元素名稱 === '天氣預報綜合描述')?.Time || [];
-    
-    const tempData = weatherElements.find(e => 
-      (e.ElementName === 'T' || e.元素名稱 === '溫度')
-    )?.Time || [];
-    
-    const popData = weatherElements.find(e => 
-      (e.ElementName === 'PoP' || e.元素名稱 === '3小時進化機率' || e.元素名稱 === '降雨機率')
-    )?.Time || [];
-    
-    console.log(`找到資料: Wx=${wxData.length}, 溫度=${tempData.length}, PoP=${popData.length}`);
-    
-    // 如果沒有找到任何資料，返回 null
-    if (wxData.length === 0 && tempData.length === 0) {
-      console.log('沒有找到任何天氣資料');
-      return null;
-    }
-    
-    // 獲取當前時間
-    const now = new Date();
-    const twTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    const currentHour = twTime.getHours();
-    const currentMinute = twTime.getMinutes();
-    const currentDate = `${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
-    
-    // 決定起始時間
-    let startHour = currentHour;
-    if (currentMinute < 30) {
-      startHour = currentHour + 1;
-    } else {
-      startHour = currentHour + 2;
-    }
-    
-    // 使用溫度資料（如果有的話）
-    const timeData = tempData.length > 0 ? tempData : wxData;
-    
-    let twoHourText = "";
-    let foundCount = 0;
-    
-    for (let i = 0; i < timeData.length && foundCount < 5; i++) {
-      const item = timeData[i];
-      const startTime = item.StartTime || item.開始時間 || item.DataTime;
-      
-      if (startTime) {
-        const itemHour = parseInt(startTime.substring(11, 13));
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
-        
-        // 判斷是否為未來時段
-        const isToday = itemDate === currentDate;
-        const isFuture = (isToday && itemHour >= startHour) || 
-                        (!isToday && foundCount > 0);
-        
-        if (isFuture) {
-          const endHour = (itemHour + 2) % 24;
-          const startTimeStr = `${String(itemHour).padStart(2, '0')}:00`;
-          const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
-          
-          let dayMark = "";
-          if (!isToday) {
-            dayMark = " (明日)";
-          } else if (endHour < itemHour) {
-            dayMark = " (跨日)";
-          }
-          
-          // 取得溫度（從 ElementValue 或 元素值）
-          let temp = null;
-          if (item.ElementValue) {
-            if (Array.isArray(item.ElementValue)) {
-              temp = item.ElementValue[0]?.Value || item.ElementValue[0]?.值;
-            }
-          }
-          
-          // 取得降雨機率
-          let pop = null;
-          if (popData[i]?.ElementValue) {
-            if (Array.isArray(popData[i].ElementValue)) {
-              pop = popData[i].ElementValue[0]?.Value || popData[i].ElementValue[0]?.值;
-            }
-          }
-          
-          let slotText = `${startTimeStr}-${endTimeStr}${dayMark} `;
-          if (temp) {
-            slotText += `溫度 ${temp}°`;
-          } else {
-            // 如果沒有溫度資料，至少顯示時間
-            slotText += `預報`;
-          }
-          if (pop && pop !== '--') {
-            slotText += ` ☔${pop}%`;
-          }
-          twoHourText += slotText + '\n';
-          foundCount++;
-        }
-      }
-    }
-    
-    if (foundCount === 0) {
-      // 如果找不到未來時段，顯示前5筆資料作為除錯
-      twoHourText = "原始資料（前5筆）：\n";
-      for (let i = 0; i < Math.min(5, timeData.length); i++) {
-        const item = timeData[i];
-        const startTime = item.StartTime || item.開始時間 || item.DataTime;
-        if (startTime) {
-          twoHourText += `${startTime.substring(5, 16)}: ${JSON.stringify(item.ElementValue)}\n`;
-        }
-      }
-    }
-    
-    return twoHourText;
+    // 暫時回傳 null，改用備用方案
+    return null;
 
   } catch (error) {
     console.log("2小時預報錯誤：", error.message);
@@ -264,7 +151,7 @@ async function get2HourForecast() {
   }
 }
 
-// 從 API 獲取未來5天預報（維持原來的宜蘭縣）
+// 從 API 獲取未來5天預報
 async function get7DayForecast() {
   try {
     const response = await axios.get(
@@ -308,6 +195,7 @@ async function get7DayForecast() {
     for (let i = 0; i < futureDates.length; i++) {
       const targetDate = futureDates[i];
       
+      // 取得該日期的第一筆資料
       const wx = wxData.find(item => {
         const startTime = item.StartTime || item.DataTime;
         return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
@@ -372,7 +260,7 @@ async function get7DayForecast() {
 
 async function getCurrentWeather() {
   try {
-    // ===== 36小時預報（用於目前天氣）=====
+    // ===== 36小時預報 =====
     const res36 = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
@@ -390,10 +278,35 @@ async function getCurrentWeather() {
     const currentMaxTemp = maxT[0].parameter.parameterName;
     const currentPop = pop[0].parameter.parameterName;
     
-    // ===== 從 F-D0047-073 獲取2小時間隔預報（礁溪鄉）=====
+    // ===== 嘗試取得2小時預報，失敗則用備用方案 =====
     const twoHourForecast = await get2HourForecast();
+    
+    // 備用方案：用36小時預報模擬2小時預報
+    let twoHourText = "";
+    if (!twoHourForecast) {
+      const timeSlots = generate2HourSlots();
+      for (let i = 0; i < timeSlots.length; i++) {
+        const slot = timeSlots[i];
+        const forecastIndex = Math.min(i, wx.length - 1);
+        const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
+        const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
+        
+        let avgTemp = null;
+        if (!isNaN(minTemp) && !isNaN(maxTemp)) {
+          avgTemp = Math.round(((minTemp + maxTemp) / 2) * 10) / 10;
+        }
+        
+        let slotText = `${slot.start}-${slot.end}${slot.dayMark} `;
+        if (avgTemp !== null) {
+          slotText += `溫度 ${avgTemp}°`;
+        }
+        twoHourText += slotText + '\n';
+      }
+    } else {
+      twoHourText = twoHourForecast;
+    }
 
-    // ===== 從 F-D0047-071 獲取未來5天預報（宜蘭縣）=====
+    // ===== 從 API 獲取未來5天預報 =====
     const weekForecast = await get7DayForecast();
 
     // 獲取今天的日期顯示
@@ -409,9 +322,9 @@ async function getCurrentWeather() {
     result += `☁️ 天氣：${currentWeather}\n`;
     result += `☔ 降雨機率：${currentPop}%\n`;
     
-    if (twoHourForecast) {
-      result += `\n🕒 未來10小時（礁溪鄉2小時間隔）\n`;
-      result += twoHourForecast;
+    if (twoHourText) {
+      result += `\n🕒 未來10小時\n`;
+      result += twoHourText;
     }
     
     if (weekForecast) {
@@ -425,9 +338,14 @@ async function getCurrentWeather() {
 
   } catch (error) {
     console.log("錯誤內容：", error.response?.data || error.message);
-    return "⚠️ 無法取得天氣資料";
+    return "⚠️ 無法取得天氣資料，請稍後再試";
   }
 }
+
+// 測試用根路由
+app.get('/', (req, res) => {
+  res.send('Line Bot 天氣機器人已啟動！請在Line中輸入「天氣」或「宜蘭」查詢。');
+});
 
 // 啟動伺服器
 app.listen(PORT, () => {
