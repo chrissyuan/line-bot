@@ -58,10 +58,18 @@ async function getWeather() {
       return now >= start && now < end;
     });
 
-    const currentWeather = wx[currentIndex].parameter.parameterName;
-    const currentRain = pop[currentIndex].parameter.parameterName;
-    const currentMin = minT[currentIndex].parameter.parameterName;
-    const currentMax = maxT[currentIndex].parameter.parameterName;
+  let currentWeather = "--";
+let currentRain = "--";
+let currentMin = "--";
+let currentMax = "--";
+
+if (currentIndex !== -1) {
+  currentWeather = wx[currentIndex]?.parameter?.parameterName || "--";
+  currentRain = pop[currentIndex]?.parameter?.parameterName || "--";
+  currentMin = minT[currentIndex]?.parameter?.parameterName || "--";
+  currentMax = maxT[currentIndex]?.parameter?.parameterName || "--";
+}
+
 
     // ===== 未來10小時 每2小時 =====
     let forecast10 = "";
@@ -78,11 +86,12 @@ async function getWeather() {
         return currentTime >= start && currentTime < end;
       });
 
-      if (index !== -1) {
-        const weather = wx[index].parameter.parameterName;
-        const rain = pop[index].parameter.parameterName;
-        const minTemp = minT[index].parameter.parameterName;
-        const maxTemp = maxT[index].parameter.parameterName;
+      if (index !== -1 && wx[index]?.parameter) {
+       const weather = wx[index]?.parameter?.parameterName || "--";
+const rain = pop[index]?.parameter?.parameterName || "--";
+const minTemp = minT[index]?.parameter?.parameterName || "--";
+const maxTemp = maxT[index]?.parameter?.parameterName || "--";
+
 
         const startStr = String(currentTime.getHours()).padStart(2,"0") + ":00";
         const endStr = String(nextTime.getHours()).padStart(2,"0") + ":00";
