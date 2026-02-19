@@ -93,7 +93,6 @@ async function getDebugInfo() {
           if (firstLoc.Location) {
             debugText += `Location 長度: ${firstLoc.Location.length}\n`;
             
-            // 找礁溪鄉
             const jiaoxi = firstLoc.Location.find(l => l.LocationName === '礁溪鄉');
             if (jiaoxi) {
               debugText += `✅ 找到礁溪鄉！\n`;
@@ -102,7 +101,6 @@ async function getDebugInfo() {
                 const elements = jiaoxi.WeatherElement.map(e => e.ElementName).join(', ');
                 debugText += `天氣元素: ${elements}\n`;
                 
-                // 檢查降雨機率
                 const pop = jiaoxi.WeatherElement.find(e => e.ElementName === '3小時降雨機率');
                 if (pop && pop.Time) {
                   debugText += `降雨機率筆數: ${pop.Time.length}\n`;
@@ -112,7 +110,6 @@ async function getDebugInfo() {
                   }
                 }
                 
-                // 檢查溫度
                 const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
@@ -140,25 +137,62 @@ async function getDebugInfo() {
   }
 }
 
-// 安全地取得數值
+// 安全地取得數值 - 修正版
 function getElementValue(elementValue) {
   if (!elementValue) return null;
   
   // 如果是陣列，取第一個
   if (Array.isArray(elementValue)) {
     if (elementValue.length > 0) {
-      // 嘗試不同的屬性名稱
-      return elementValue[0]?.Value || elementValue[0]?.value || elementValue[0]?.數值 || null;
+      const item = elementValue[0];
+      // 根據實際的欄位名稱取值
+      if (item.ProbabilityOfPrecipitation !== undefined) {
+        return item.ProbabilityOfPrecipitation;
+      }
+      if (item.Temperature !== undefined) {
+        return item.Temperature;
+      }
+      if (item.Value !== undefined) {
+        return item.Value;
+      }
+      if (item.value !== undefined) {
+        return item.value;
+      }
+      if (item.數值 !== undefined) {
+        return item.數值;
+      }
+      // 如果是直接值
+      if (typeof item === 'string' || typeof item === 'number') {
+        return item;
+      }
     }
   }
   
   // 如果是物件
   if (typeof elementValue === 'object') {
-    return elementValue.Value || elementValue.value || elementValue.數值 || null;
+    if (elementValue.ProbabilityOfPrecipitation !== undefined) {
+      return elementValue.ProbabilityOfPrecipitation;
+    }
+    if (elementValue.Temperature !== undefined) {
+      return elementValue.Temperature;
+    }
+    if (elementValue.Value !== undefined) {
+      return elementValue.Value;
+    }
+    if (elementValue.value !== undefined) {
+      return elementValue.value;
+    }
+    if (elementValue.數值 !== undefined) {
+      return elementValue.數值;
+    }
   }
   
   // 如果是直接值
-  return elementValue;
+  if (typeof elementValue === 'string' || typeof elementValue === 'number') {
+    return elementValue;
+  }
+  
+  return null;
 }
 
 // 計算溫度平均值
@@ -281,6 +315,8 @@ async function getHourlyForecast() {
             const temp = getElementValue(tempItem.ElementValue);
             const pop = getElementValue(popItem?.ElementValue);
             
+            console.log(`時段 ${startTimeStr}-${endTimeStr}: 溫度=${temp}, 降雨=${pop}`);
+            
             // 溫度文字
             if (temp) {
               let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark} ${temp}°`;
@@ -382,13 +418,11 @@ async function get7DayForecast() {
       const temperature = getElementValue(temp?.ElementValue);
       const rain = getElementValue(pop?.ElementValue);
       
-      if (temperature || weather) {
-        let dayText = targetDate;
-        if (weather) dayText += ` ${weather}`;
-        if (temperature) dayText += ` ${temperature}°`;
-        if (rain && rain !== '--') dayText += ` ☔${rain}%`;
-        weekForecast.push(dayText);
-      }
+      let dayText = targetDate;
+      if (weather) dayText += ` ${weather}`;
+      if (temperature) dayText += ` ${temperature}°`;
+      if (rain && rain !== '--') dayText += ` ☔${rain}%`;
+      weekForecast.push(dayText);
     }
     
     return weekForecast.join('\n');
@@ -482,7 +516,7 @@ async function getCurrentWeather() {
       result += `\n🕒 未來10小時降雨機率\n`;
       result += hourly.pop;
     } 
-    // 如果沒有降雨機率，顯示溫度
+    // 顯示溫度
     else if (hourly.temp) {
       result += `\n🕒 未來10小時溫度\n`;
       result += hourly.temp;
