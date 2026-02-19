@@ -137,15 +137,13 @@ async function getDebugInfo() {
   }
 }
 
-// 安全地取得數值 - 修正版
+// 安全地取得數值
 function getElementValue(elementValue) {
   if (!elementValue) return null;
   
-  // 如果是陣列，取第一個
   if (Array.isArray(elementValue)) {
     if (elementValue.length > 0) {
       const item = elementValue[0];
-      // 根據實際的欄位名稱取值
       if (item.ProbabilityOfPrecipitation !== undefined) {
         return item.ProbabilityOfPrecipitation;
       }
@@ -161,14 +159,12 @@ function getElementValue(elementValue) {
       if (item.數值 !== undefined) {
         return item.數值;
       }
-      // 如果是直接值
       if (typeof item === 'string' || typeof item === 'number') {
         return item;
       }
     }
   }
   
-  // 如果是物件
   if (typeof elementValue === 'object') {
     if (elementValue.ProbabilityOfPrecipitation !== undefined) {
       return elementValue.ProbabilityOfPrecipitation;
@@ -187,7 +183,6 @@ function getElementValue(elementValue) {
     }
   }
   
-  // 如果是直接值
   if (typeof elementValue === 'string' || typeof elementValue === 'number') {
     return elementValue;
   }
@@ -195,7 +190,7 @@ function getElementValue(elementValue) {
   return null;
 }
 
-// 計算溫度平均值
+// 計算溫度平均值（保留以備不時之需）
 function calculateAverageTemp(min, max) {
   if (min && max && min !== '--' && max !== '--') {
     const avg = (parseFloat(min) + parseFloat(max)) / 2;
@@ -220,10 +215,10 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 從 F-D0047-001 API 獲取2小時間隔的預報（礁溪鄉）
-async function getHourlyForecast() {
+// 從 F-D0047-001 API 獲取2小時間隔的溫度預報（礁溪鄉）
+async function getHourlyTemperature() {
   try {
-    console.log('開始取得小時預報（F-D0047-001 礁溪鄉）...');
+    console.log('開始取得小時溫度預報（F-D0047-001 礁溪鄉）...');
     
     const response = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
@@ -235,24 +230,24 @@ async function getHourlyForecast() {
     
     if (!response.data.records || !response.data.records.Locations) {
       console.log('找不到 records.Locations');
-      return { temp: null, pop: null };
+      return null;
     }
     
     const locationsList = response.data.records.Locations;
     if (!locationsList || locationsList.length === 0) {
-      return { temp: null, pop: null };
+      return null;
     }
     
     const firstLocations = locationsList[0];
     const locationArray = firstLocations.Location;
     if (!locationArray || locationArray.length === 0) {
-      return { temp: null, pop: null };
+      return null;
     }
     
     const jiaoxiData = locationArray.find(l => l.LocationName === '礁溪鄉');
     if (!jiaoxiData) {
       console.log('找不到礁溪鄉');
-      return { temp: null, pop: null };
+      return null;
     }
     
     console.log('使用地點:', jiaoxiData.LocationName);
@@ -260,9 +255,8 @@ async function getHourlyForecast() {
     const weatherElements = jiaoxiData.WeatherElement || [];
     
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
-    const popData = weatherElements.find(e => e.ElementName === '3小時降雨機率')?.Time || [];
     
-    console.log(`找到資料 - 溫度:${tempData.length}, 降雨:${popData.length}`);
+    console.log(`找到溫度資料筆數: ${tempData.length}`);
     
     // 獲取當前時間
     const now = new Date();
@@ -280,14 +274,11 @@ async function getHourlyForecast() {
     }
     
     let tempText = "";
-    let popText = "";
     let foundCount = 0;
     
-    // 使用溫度資料
     if (tempData.length > 0) {
       for (let i = 0; i < tempData.length && foundCount < 5; i++) {
         const tempItem = tempData[i];
-        const popItem = popData[i];
         
         const startTime = tempItem.StartTime || tempItem.DataTime;
         
@@ -311,43 +302,27 @@ async function getHourlyForecast() {
               dayMark = " (跨日)";
             }
             
-            // 安全地取得數值
             const temp = getElementValue(tempItem.ElementValue);
-            const pop = getElementValue(popItem?.ElementValue);
             
-            console.log(`時段 ${startTimeStr}-${endTimeStr}: 溫度=${temp}, 降雨=${pop}`);
-            
-            // 溫度文字
             if (temp) {
               let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark} ${temp}°`;
               tempText += tempSlot + '\n';
+              foundCount++;
             }
-            
-            // 降雨文字
-            if (pop && pop !== '--') {
-              let popSlot = `${startTimeStr}-${endTimeStr}${dayMark} ☔${pop}%`;
-              popText += popSlot + '\n';
-            }
-            
-            foundCount++;
           }
         }
       }
     }
     
-    return {
-      temp: tempText || null,
-      pop: popText || null,
-      location: jiaoxiData.LocationName
-    };
+    return tempText || null;
 
   } catch (error) {
-    console.log("小時預報錯誤：", error.message);
-    return { temp: null, pop: null, location: null };
+    console.log("小時溫度預報錯誤：", error.message);
+    return null;
   }
 }
 
-// 從 API 獲取未來5天預報（礁溪鄉）
+// 從 API 獲取未來5天預報（礁溪鄉）- 包含天氣、溫度範圍、降雨機率
 async function get7DayForecast() {
   try {
     const response = await axios.get(
@@ -389,7 +364,15 @@ async function get7DayForecast() {
     for (let i = 0; i < futureDates.length; i++) {
       const targetDate = futureDates[i];
       
-      // 找每天的資料（取當天中午左右的資料）
+      // 找當天的最低溫和最高溫
+      const temps = tempData.filter(item => {
+        const startTime = item.StartTime || item.DataTime;
+        if (!startTime) return false;
+        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        return itemDate === targetDate;
+      }).map(item => parseFloat(getElementValue(item.ElementValue)));
+      
+      // 找當天的天氣現象（取中午左右的資料）
       const wx = wxData.find(item => {
         const startTime = item.StartTime || item.DataTime;
         if (!startTime) return false;
@@ -398,30 +381,27 @@ async function get7DayForecast() {
         return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
       });
       
-      const temp = tempData.find(item => {
+      // 找當天的降雨機率（取最高的）
+      const pops = popData.filter(item => {
         const startTime = item.StartTime || item.DataTime;
         if (!startTime) return false;
         const itemDate = startTime.substring(5, 10).replace('-', '/');
-        const itemHour = parseInt(startTime.substring(11, 13));
-        return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
-      });
-      
-      const pop = popData.find(item => {
-        const startTime = item.StartTime || item.DataTime;
-        if (!startTime) return false;
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
-        const itemHour = parseInt(startTime.substring(11, 13));
-        return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
-      });
+        return itemDate === targetDate;
+      }).map(item => parseFloat(getElementValue(item.ElementValue)));
       
       const weather = getElementValue(wx?.ElementValue) || '';
-      const temperature = getElementValue(temp?.ElementValue);
-      const rain = getElementValue(pop?.ElementValue);
+      const minTemp = temps.length > 0 ? Math.min(...temps) : null;
+      const maxTemp = temps.length > 0 ? Math.max(...temps) : null;
+      const maxPop = pops.length > 0 ? Math.max(...pops) : null;
       
       let dayText = targetDate;
       if (weather) dayText += ` ${weather}`;
-      if (temperature) dayText += ` ${temperature}°`;
-      if (rain && rain !== '--') dayText += ` ☔${rain}%`;
+      if (minTemp !== null && maxTemp !== null) {
+        dayText += ` ${minTemp}°~${maxTemp}°`;
+      }
+      if (maxPop !== null && maxPop > 0) {
+        dayText += ` ☔${maxPop}%`;
+      }
       weekForecast.push(dayText);
     }
     
@@ -493,8 +473,8 @@ async function getCurrentWeather() {
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
-    // ===== 從 F-D0047-001 獲取小時預報（礁溪鄉）=====
-    const hourly = await getHourlyForecast();
+    // ===== 從 F-D0047-001 獲取小時溫度預報（礁溪鄉）=====
+    const hourlyTemp = await getHourlyTemperature();
 
     // ===== 從 F-D0047-001 獲取未來5天預報（礁溪鄉）=====
     const weekForecast = await get7DayForecast();
@@ -511,18 +491,11 @@ async function getCurrentWeather() {
     result += `🌡 目前溫度 ${currentAvgTemp}°\n`;
     result += `☁️ ${currentWeather}\n`;
     
-    // 優先顯示降雨機率
-    if (hourly.pop) {
-      result += `\n🕒 未來10小時降雨機率\n`;
-      result += hourly.pop;
-    } 
-    // 顯示溫度
-    else if (hourly.temp) {
+    // 顯示未來10小時溫度
+    if (hourlyTemp) {
       result += `\n🕒 未來10小時溫度\n`;
-      result += hourly.temp;
-    }
-    // 最後的備用方案
-    else {
+      result += hourlyTemp;
+    } else {
       result += `\n🕒 未來10小時溫度（36hr預報）\n`;
       const timeSlots = generate2HourSlots();
       for (let i = 0; i < timeSlots.length; i++) {
