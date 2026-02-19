@@ -35,7 +35,7 @@ async function handleEvent(event) {
 
   const userMessage = event.message.text;
   
-  // 新增一個除錯指令
+  // 除錯指令
   if (userMessage === '!debug') {
     const debugInfo = await getDebugInfo();
     return client.replyMessage(event.replyToken, {
@@ -75,13 +75,13 @@ async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
     
-    // 測試 F-D0047-071
-    debugText += "📡 F-D0047-071 (宜蘭縣):\n";
+    // 測試 F-D0047-071 用礁溪鄉
+    debugText += "📡 F-D0047-071 (礁溪鄉):\n";
     try {
       const response = await axios.get(
         `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
         `Authorization=${CWA_API_KEY}&` +
-        `locationName=宜蘭縣`
+        `locationName=礁溪鄉`
       );
       
       debugText += `狀態: ${response.data.success}\n`;
@@ -103,19 +103,27 @@ async function getDebugInfo() {
               debugText += `Location 長度: ${firstLoc.Location.length}\n`;
               
               if (firstLoc.Location.length > 0) {
-                const yilan = firstLoc.Location.find(l => l.LocationName === '宜蘭縣');
-                if (yilan) {
-                  debugText += `找到宜蘭縣\n`;
+                // 顯示第一個地點的名稱
+                const firstLocation = firstLoc.Location[0];
+                debugText += `第一個地點名稱: ${firstLocation.LocationName}\n`;
+                
+                // 尋找礁溪鄉
+                const jiaoxi = firstLoc.Location.find(l => 
+                  l.LocationName && l.LocationName.includes('礁溪')
+                );
+                
+                if (jiaoxi) {
+                  debugText += `✅ 找到礁溪鄉\n`;
                   
-                  if (yilan.WeatherElement) {
-                    debugText += `WeatherElement 數量: ${yilan.WeatherElement.length}\n`;
+                  if (jiaoxi.WeatherElement) {
+                    debugText += `WeatherElement 數量: ${jiaoxi.WeatherElement.length}\n`;
                     
                     // 顯示所有可用的元素名稱
-                    const elementNames = yilan.WeatherElement.map(e => e.ElementName).join(', ');
+                    const elementNames = jiaoxi.WeatherElement.map(e => e.ElementName).join(', ');
                     debugText += `元素: ${elementNames}\n`;
                     
                     // 特別查看 PoP
-                    const pop = yilan.WeatherElement.find(e => e.ElementName === 'PoP');
+                    const pop = jiaoxi.WeatherElement.find(e => e.ElementName === 'PoP');
                     if (pop) {
                       debugText += `✅ 找到 PoP 元素\n`;
                       debugText += `PoP 時間資料筆數: ${pop.Time?.length || 0}\n`;
@@ -135,7 +143,10 @@ async function getDebugInfo() {
                     }
                   }
                 } else {
-                  debugText += `❌ 找不到宜蘭縣\n`;
+                  debugText += `❌ 找不到礁溪鄉，列出前5個地點:\n`;
+                  for (let i = 0; i < Math.min(5, firstLoc.Location.length); i++) {
+                    debugText += `  ${firstLoc.Location[i].LocationName}\n`;
+                  }
                 }
               }
             }
@@ -188,15 +199,15 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 從 F-D0047-071 API 獲取2小時間隔的預報（宜蘭縣）
+// 從 F-D0047-071 API 獲取2小時間隔的預報（礁溪鄉）
 async function getHourlyForecast() {
   try {
-    console.log('開始取得小時預報（F-D0047-071）...');
+    console.log('開始取得小時預報（F-D0047-071 礁溪鄉）...');
     
     const response = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
       `Authorization=${CWA_API_KEY}&` +
-      `locationName=宜蘭縣&` +
+      `locationName=礁溪鄉&` +
       `elementName=Wx,MinT,MaxT,PoP`
     );
 
@@ -218,12 +229,21 @@ async function getHourlyForecast() {
       return { temp: null, pop: null };
     }
     
-    const yilanData = locationArray.find(loc => loc.LocationName === '宜蘭縣');
-    if (!yilanData) {
-      return { temp: null, pop: null };
+    // 尋找礁溪鄉
+    const jiaoxiData = locationArray.find(loc => 
+      loc.LocationName && loc.LocationName.includes('礁溪')
+    );
+    
+    if (!jiaoxiData) {
+      console.log('找不到礁溪鄉資料，使用第一個地點');
+      // 如果找不到礁溪鄉，就使用第一個地點
+      // return { temp: null, pop: null };
     }
     
-    const weatherElements = yilanData.WeatherElement || [];
+    const targetData = jiaoxiData || locationArray[0];
+    console.log('使用地點:', targetData.LocationName);
+    
+    const weatherElements = targetData.WeatherElement || [];
     
     const wxData = weatherElements.find(e => e.ElementName === 'Wx')?.Time || [];
     const minTData = weatherElements.find(e => e.ElementName === 'MinT')?.Time || [];
@@ -251,7 +271,7 @@ async function getHourlyForecast() {
     let popText = "";
     let foundCount = 0;
     
-    // 使用溫度資料（如果有的話）
+    // 使用溫度資料
     if (minTData.length > 0 && maxTData.length > 0) {
       for (let i = 0; i < minTData.length && foundCount < 5; i++) {
         const minItem = minTData[i];
@@ -319,7 +339,7 @@ async function getHourlyForecast() {
   }
 }
 
-// 從 API 獲取未來5天預報
+// 從 API 獲取未來5天預報（維持宜蘭縣）
 async function get7DayForecast() {
   try {
     const response = await axios.get(
@@ -344,8 +364,11 @@ async function get7DayForecast() {
       return "";
     }
     
+    // 尋找宜蘭縣（可能不存在）
     const yilanData = locationArray.find(loc => loc.LocationName === '宜蘭縣');
     if (!yilanData) {
+      // 如果沒有宜蘭縣，就使用第一個地點
+      console.log('7天預報找不到宜蘭縣');
       return "";
     }
     
@@ -488,7 +511,7 @@ async function getCurrentWeather() {
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
-    // ===== 從 F-D0047-071 獲取小時預報 =====
+    // ===== 從 F-D0047-071 獲取小時預報（礁溪鄉）=====
     const hourly = await getHourlyForecast();
 
     // ===== 從 API 獲取未來5天預報 =====
@@ -508,12 +531,12 @@ async function getCurrentWeather() {
     
     // 優先顯示降雨機率
     if (hourly.pop) {
-      result += `\n🕒 未來10小時降雨機率\n`;
+      result += `\n🕒 未來10小時降雨機率（礁溪鄉）\n`;
       result += hourly.pop;
     } 
     // 如果沒有降雨機率，顯示溫度
     else if (hourly.temp) {
-      result += `\n🕒 未來10小時溫度\n`;
+      result += `\n🕒 未來10小時溫度（礁溪鄉）\n`;
       result += hourly.temp;
     }
     // 最後的備用方案
