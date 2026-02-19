@@ -104,10 +104,6 @@ async function getDebugInfo() {
                 const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
-                  if (temp.Time.length > 0) {
-                    debugText += `第一筆時間欄位: ${Object.keys(temp.Time[0]).join(', ')}\n`;
-                    debugText += `第一筆時間值: ${temp.Time[0].DataTime}\n`;
-                  }
                 }
               }
             }
@@ -136,43 +132,21 @@ function getElementValue(elementValue) {
   if (Array.isArray(elementValue)) {
     if (elementValue.length > 0) {
       const item = elementValue[0];
-      if (item.ProbabilityOfPrecipitation !== undefined) {
-        return item.ProbabilityOfPrecipitation;
-      }
-      if (item.Temperature !== undefined) {
-        return item.Temperature;
-      }
-      if (item.Value !== undefined) {
-        return item.Value;
-      }
-      if (item.value !== undefined) {
-        return item.value;
-      }
-      if (item.數值 !== undefined) {
-        return item.數值;
-      }
-      if (typeof item === 'string' || typeof item === 'number') {
-        return item;
-      }
+      if (item.Temperature !== undefined) return item.Temperature;
+      if (item.ProbabilityOfPrecipitation !== undefined) return item.ProbabilityOfPrecipitation;
+      if (item.Value !== undefined) return item.Value;
+      if (item.value !== undefined) return item.value;
+      if (item.數值 !== undefined) return item.數值;
+      if (typeof item === 'string' || typeof item === 'number') return item;
     }
   }
   
   if (typeof elementValue === 'object') {
-    if (elementValue.ProbabilityOfPrecipitation !== undefined) {
-      return elementValue.ProbabilityOfPrecipitation;
-    }
-    if (elementValue.Temperature !== undefined) {
-      return elementValue.Temperature;
-    }
-    if (elementValue.Value !== undefined) {
-      return elementValue.Value;
-    }
-    if (elementValue.value !== undefined) {
-      return elementValue.value;
-    }
-    if (elementValue.數值 !== undefined) {
-      return elementValue.數值;
-    }
+    if (elementValue.Temperature !== undefined) return elementValue.Temperature;
+    if (elementValue.ProbabilityOfPrecipitation !== undefined) return elementValue.ProbabilityOfPrecipitation;
+    if (elementValue.Value !== undefined) return elementValue.Value;
+    if (elementValue.value !== undefined) return elementValue.value;
+    if (elementValue.數值 !== undefined) return elementValue.數值;
   }
   
   if (typeof elementValue === 'string' || typeof elementValue === 'number') {
@@ -182,19 +156,10 @@ function getElementValue(elementValue) {
   return null;
 }
 
-// 安全地取得時間 - 修正版
+// 安全地取得時間
 function getTimeString(timeObj) {
   if (!timeObj) return null;
-  
-  // 根據實際看到的欄位名稱
-  if (timeObj.DataTime) return timeObj.DataTime;
-  if (timeObj.dataTime) return timeObj.dataTime;
-  if (timeObj.StartTime) return timeObj.StartTime;
-  if (timeObj.startTime) return timeObj.startTime;
-  if (timeObj.開始時間) return timeObj.開始時間;
-  if (timeObj.資料時間) return timeObj.資料時間;
-  
-  return null;
+  return timeObj.DataTime || timeObj.dataTime || timeObj.StartTime || timeObj.startTime || null;
 }
 
 // 獲取未來5天的日期（格式：MM/DD）
@@ -270,22 +235,23 @@ async function getHourlyTemperature() {
     
     console.log(`當前時間: ${currentHour}:${currentMinute}, 日期: ${currentDate}`);
     
-    // 決定起始時間
+    // 決定起始時間（0-23小時制）
     let startHour = currentHour;
+    let startDay = 0; // 0=今天, 1=明天
+    
     if (currentMinute < 30) {
       startHour = currentHour + 1;
     } else {
       startHour = currentHour + 2;
     }
     
-    // 如果起始小時 >= 24，減去24並標記為明天
-    let dayOffset = 0;
+    // 處理跨日
     if (startHour >= 24) {
       startHour -= 24;
-      dayOffset = 1;
+      startDay = 1;
     }
     
-    console.log(`起始小時: ${startHour}, 日期偏移: ${dayOffset}`);
+    console.log(`起始小時: ${startHour}, 起始日: ${startDay === 0 ? '今天' : '明天'}`);
     
     let tempText = "";
     let foundCount = 0;
@@ -309,20 +275,17 @@ async function getHourlyTemperature() {
           
           const dayDiff = Math.floor((itemDateObj - currDateObj) / (24 * 60 * 60 * 1000));
           
-          const isToday = dayDiff === 0;
-          const isTomorrow = dayDiff === 1;
-          
-          console.log(`檢查: ${itemDate} ${itemHour}:00, dayDiff=${dayDiff}, isToday=${isToday}, isTomorrow=${isTomorrow}`);
+          console.log(`檢查: ${itemDate} ${itemHour}:00, dayDiff=${dayDiff}`);
           
           // 判斷是否為未來時段
           let isFuture = false;
           
-          if (isToday) {
-            // 今天的資料：要 >= 起始小時
+          if (dayDiff === startDay) {
+            // 同一天（今天或明天）
             isFuture = itemHour >= startHour;
-          } else if (dayDiff > 0) {
-            // 未來的資料：只要還沒找到5筆就可以
-            isFuture = foundCount < 5;
+          } else if (dayDiff > startDay) {
+            // 更未來的日子
+            isFuture = true;
           }
           
           if (isFuture) {
@@ -335,8 +298,6 @@ async function getHourlyTemperature() {
               dayMark = " (明日)";
             } else if (dayDiff > 1) {
               dayMark = ` (+${dayDiff})`;
-            } else if (endHour < itemHour) {
-              dayMark = " (跨日)";
             }
             
             const temp = getElementValue(tempItem.ElementValue);
@@ -482,17 +443,17 @@ function generate2HourSlots() {
   const currentMinute = twTime.getMinutes();
   
   let startHour = currentHour;
+  let dayMark = "";
+  
   if (currentMinute < 30) {
     startHour = currentHour + 1;
   } else {
     startHour = currentHour + 2;
   }
   
-  // 處理跨日
-  let dayOffset = 0;
   if (startHour >= 24) {
     startHour -= 24;
-    dayOffset = 1;
+    dayMark = " (明日)";
   }
   
   for (let i = 0; i < 5; i++) {
@@ -502,18 +463,17 @@ function generate2HourSlots() {
     const startTimeStr = `${String(slotStartHour).padStart(2, '0')}:00`;
     const endTimeStr = `${String(slotEndHour).padStart(2, '0')}:00`;
     
-    let dayMark = "";
-    if (dayOffset + Math.floor((startHour + i * 2) / 24) > 0) {
-      dayMark = " (明日)";
+    let slotDayMark = dayMark;
+    if (i > 0 && dayMark) {
+      slotDayMark = " (明日)";
     } else if (slotEndHour < slotStartHour) {
-      dayMark = " (跨日)";
+      slotDayMark = " (跨日)";
     }
     
     slots.push({
       start: startTimeStr,
       end: endTimeStr,
-      dayMark: dayMark,
-      startHour: slotStartHour
+      dayMark: slotDayMark
     });
   }
   
