@@ -77,7 +77,7 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 生成2小時間隔的時間區間
+// 生成2小時間隔的時間區間（使用36小時預報資料）
 function generate2HourSlots() {
   const slots = [];
   const now = new Date();
@@ -183,6 +183,14 @@ async function get7DayForecast() {
       });
       
       if (wx || minT || maxT) {
+        // 解析天氣描述
+        let weather = "";
+        if (wx?.ElementValue) {
+          if (Array.isArray(wx.ElementValue)) {
+            weather = wx.ElementValue[0]?.Value || "";
+          }
+        }
+        
         const minTemp = minT?.ElementValue?.[0]?.Value;
         const maxTemp = maxT?.ElementValue?.[0]?.Value;
         const avgTemp = calculateAverageTemp(minTemp, maxTemp);
@@ -190,6 +198,9 @@ async function get7DayForecast() {
         
         weekForecast.push({
           date: targetDate,
+          weather: weather,
+          minTemp: minTemp,
+          maxTemp: maxTemp,
           avgTemp: avgTemp,
           pop: rain
         });
@@ -200,8 +211,11 @@ async function get7DayForecast() {
       let weekText = "";
       for (const day of weekForecast) {
         weekText += `${day.date} `;
-        if (day.avgTemp !== null) {
-          weekText += `${day.avgTemp}°`;
+        if (day.weather) {
+          weekText += `${day.weather} `;
+        }
+        if (day.minTemp && day.maxTemp) {
+          weekText += `${day.minTemp}°~${day.maxTemp}°`;
         }
         if (day.pop && day.pop !== '--') {
           weekText += ` ☔${day.pop}%`;
@@ -221,7 +235,7 @@ async function get7DayForecast() {
 
 async function getCurrentWeather() {
   try {
-    // ===== 36小時預報 =====
+    // ===== 36小時預報（用於目前溫度和未來10小時）=====
     const res36 = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
@@ -234,25 +248,22 @@ async function getCurrentWeather() {
     const minT = elements36.find(e => e.elementName === "MinT").time;
     const maxT = elements36.find(e => e.elementName === "MaxT").time;
     
-    // 計算目前氣溫平均值
-    const currentMinTemp = parseFloat(minT[0].parameter.parameterName);
-    const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
-    const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
-    
-    // 目前降雨機率
+    // 目前天氣資訊（使用第一筆資料）
+    const currentWeather = wx[0].parameter.parameterName;
+    const currentMinTemp = minT[0].parameter.parameterName;
+    const currentMaxTemp = maxT[0].parameter.parameterName;
     const currentPop = pop[0].parameter.parameterName;
     
     // 生成2小時間隔的時間區間
     const timeSlots = generate2HourSlots();
     
-    // 獲取未來2小時間隔的溫度平均值和降雨機率
+    // 獲取未來2小時間隔的溫度平均值
     let twoHourText = "";
     for (let i = 0; i < timeSlots.length; i++) {
       const slot = timeSlots[i];
       
       // 使用對應的預報資料
       const forecastIndex = Math.min(i, wx.length - 1);
-      const rain = pop[forecastIndex]?.parameter?.parameterName;
       const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
       const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
       
@@ -264,10 +275,7 @@ async function getCurrentWeather() {
       
       let slotText = `${slot.start}-${slot.end}${slot.dayMark} `;
       if (avgTemp !== null) {
-        slotText += `${avgTemp}°`;
-      }
-      if (rain && rain !== '--') {
-        slotText += ` ☔${rain}%`;
+        slotText += `溫度 ${avgTemp}°`;
       }
       twoHourText += slotText + '\n';
     }
@@ -284,14 +292,10 @@ async function getCurrentWeather() {
     let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
     result += `━━━━━━━━━━━━\n\n`;
     
-    // 目前氣溫（平均值）
-    if (!isNaN(currentAvgTemp)) {
-      result += `🌡 目前 ${currentAvgTemp}°`;
-      if (currentPop && currentPop !== '--') {
-        result += `  ☔${currentPop}%`;
-      }
-      result += '\n';
-    }
+    // 目前天氣資訊（最低溫~最高溫、天氣描述、降雨機率）
+    result += `🌡 目前氣溫：${currentMinTemp}°C ~ ${currentMaxTemp}°C\n`;
+    result += `☁️ 天氣：${currentWeather}\n`;
+    result += `☔ 降雨機率：${currentPop}%\n`;
     
     if (twoHourText) {
       result += `\n🕒 未來10小時\n`;
