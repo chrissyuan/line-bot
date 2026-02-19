@@ -9,10 +9,6 @@ const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET;
 const CWA_API_KEY = process.env.CWA_API_KEY;
 
-// ===== 防止崩潰 =====
-process.on("uncaughtException", err => console.error(err));
-process.on("unhandledRejection", err => console.error(err));
-
 // ===== LINE 簽章驗證 =====
 function verifyLineSignature(req) {
   const signature = req.headers["x-line-signature"];
@@ -30,7 +26,7 @@ function verifyLineSignature(req) {
 async function getWeather() {
   try {
 
-    // ===== 36小時 API =====
+    // ===== 36小時預報 =====
     const res36 = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
@@ -43,7 +39,6 @@ async function getWeather() {
     const minT = elements36.find(e => e.elementName === "MinT").time;
     const maxT = elements36.find(e => e.elementName === "MaxT").time;
 
-    // ===== 現在時間 =====
     const now = new Date();
     const nowStr = now.getFullYear() + "/" +
       String(now.getMonth()+1).padStart(2,"0") + "/" +
@@ -51,27 +46,27 @@ async function getWeather() {
       String(now.getHours()).padStart(2,"0") + ":" +
       String(now.getMinutes()).padStart(2,"0");
 
-    // 找目前落在哪個區間
+    // ===== 找目前區間 =====
     const currentIndex = wx.findIndex(t => {
       const start = new Date(t.startTime);
       const end = new Date(t.endTime);
       return now >= start && now < end;
     });
 
-  let currentWeather = "--";
-let currentRain = "--";
-let currentMin = "--";
-let currentMax = "--";
+    let currentTemp = "--";
+    let currentRain = "--";
+    let currentWeather = "--";
 
-if (currentIndex !== -1) {
-  currentWeather = wx[currentIndex]?.parameter?.parameterName || "--";
-  currentRain = pop[currentIndex]?.parameter?.parameterName || "--";
-  currentMin = minT[currentIndex]?.parameter?.parameterName || "--";
-  currentMax = maxT[currentIndex]?.parameter?.parameterName || "--";
-}
+    if (currentIndex !== -1) {
+      const min = parseInt(minT[currentIndex].parameter.parameterName);
+      const max = parseInt(maxT[currentIndex].parameter.parameterName);
 
+      currentTemp = Math.round((min + max) / 2);
+      currentRain = pop[currentIndex].parameter.parameterName;
+      currentWeather = wx[currentIndex].parameter.parameterName;
+    }
 
-    // ===== 未來10小時 每2小時 =====
+    // ===== 未來10小時 =====
     let forecast10 = "";
     let currentTime = new Date(now);
     const endTime = new Date(now.getTime() + 10 * 60 * 60 * 1000);
@@ -86,17 +81,19 @@ if (currentIndex !== -1) {
         return currentTime >= start && currentTime < end;
       });
 
-      if (index !== -1 && wx[index]?.parameter) {
-       const weather = wx[index]?.parameter?.parameterName || "--";
-const rain = pop[index]?.parameter?.parameterName || "--";
-const minTemp = minT[index]?.parameter?.parameterName || "--";
-const maxTemp = maxT[index]?.parameter?.parameterName || "--";
+      if (index !== -1) {
 
+        const min = parseInt(minT[index].parameter.parameterName);
+        const max = parseInt(maxT[index].parameter.parameterName);
+        const avgTemp = Math.round((min + max) / 2);
+
+        const weather = wx[index].parameter.parameterName;
+        const rain = pop[index].parameter.parameterName;
 
         const startStr = String(currentTime.getHours()).padStart(2,"0") + ":00";
         const endStr = String(nextTime.getHours()).padStart(2,"0") + ":00";
 
-        forecast10 += `${startStr}-${endStr} ${weather} ${minTemp}°~${maxTemp}° ☔${rain}%\n`;
+        forecast10 += `${startStr}-${endStr} ${avgTemp}°C ☔${rain}% ${weather}\n`;
       }
 
       currentTime = nextTime;
@@ -111,36 +108,39 @@ const maxTemp = maxT[index]?.parameter?.parameterName || "--";
     let forecast5 = "";
 
     if (locations && locations.length > 0) {
+
       const elements7 = locations[0].weatherElement;
 
       const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
       const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
       const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
+      const pop7 = elements7.find(e => e.elementName === "PoP12h")?.time || [];
 
       for (let i = 0; i < 5 && i < wx7.length; i++) {
+
         const date = wx7[i].startTime.substring(5,10);
         const weather = wx7[i].elementValue[0].value;
         const minTemp = minT7[i].elementValue[0].value;
         const maxTemp = maxT7[i].elementValue[0].value;
+        const rain = pop7[i]?.elementValue?.[0]?.value || "--";
 
-        forecast5 += `${date} ${weather} ${minTemp}°~${maxTemp}°\n`;
+        forecast5 += `${date} ${minTemp}°~${maxTemp}° ☔${rain}% ${weather}\n`;
       }
     }
 
-    // ===== 組合輸出 =====
+    // ===== 最終輸出 =====
     return (
-`📍 宜蘭縣天氣總覽 (${nowStr})
-━━━━━━━━━━━━
+`🕒 ${nowStr}
 
-🌡 目前氣溫：${currentMin}°C ~ ${currentMax}°C
-☁️ 天氣：${currentWeather}
-☔ 降雨機率：${currentRain}%
+📌 目前天氣
+${currentTemp}°C ☔${currentRain}% ${currentWeather}
 
-🕒 未來 10 小時逐2小時預報
+📈 未來10小時
 ${forecast10}
-📅 未來 5 天預報
+
+📅 未來5天預報
 ${forecast5}
-━━━━━━━━━━━━
+
 資料來源：中央氣象署`
     );
 
@@ -183,7 +183,6 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
-// ===== Render PORT =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
