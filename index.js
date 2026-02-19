@@ -23,7 +23,7 @@ app.post('/webhook', line.middleware(lineConfig), (req, res) => {
     .then((result) => res.json(result))
     .catch((err) => {
       console.error('Webhook 錯誤:', err);
-      res.status(200).end(); // 始終回傳200給Line
+      res.status(200).end();
     });
 });
 
@@ -39,10 +39,7 @@ async function handleEvent(event) {
     try {
       const weatherData = await getCurrentWeather();
       
-      // 確保訊息不為空
       const replyText = weatherData || '無法取得天氣資料';
-      
-      // 限制訊息長度（Line 限制 5000 字符）
       const limitedText = replyText.length > 5000 ? replyText.substring(0, 5000) + '...' : replyText;
       
       return client.replyMessage(event.replyToken, {
@@ -68,7 +65,7 @@ async function handleEvent(event) {
 function calculateAverageTemp(min, max) {
   if (min && max && min !== '--' && max !== '--') {
     const avg = (parseFloat(min) + parseFloat(max)) / 2;
-    return Math.round(avg * 10) / 10;
+    return Math.round(avg * 10) / 10; // 四捨五入到小數點第一位
   }
   return null;
 }
@@ -141,8 +138,6 @@ async function get2HourForecast() {
     );
 
     console.log('2小時 API 回應狀態:', response.data.success);
-    
-    // 暫時回傳 null，改用備用方案
     return null;
 
   } catch (error) {
@@ -195,7 +190,6 @@ async function get7DayForecast() {
     for (let i = 0; i < futureDates.length; i++) {
       const targetDate = futureDates[i];
       
-      // 取得該日期的第一筆資料
       const wx = wxData.find(item => {
         const startTime = item.StartTime || item.DataTime;
         return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
@@ -226,13 +220,13 @@ async function get7DayForecast() {
         
         const minTemp = minT?.ElementValue?.[0]?.Value;
         const maxTemp = maxT?.ElementValue?.[0]?.Value;
+        const avgTemp = calculateAverageTemp(minTemp, maxTemp);
         const rain = pop?.ElementValue?.[0]?.Value;
         
         weekForecast.push({
           date: targetDate,
           weather: weather,
-          minTemp: minTemp,
-          maxTemp: maxTemp,
+          avgTemp: avgTemp,
           pop: rain
         });
       }
@@ -241,7 +235,10 @@ async function get7DayForecast() {
     if (weekForecast.length > 0) {
       let weekText = "";
       for (const day of weekForecast) {
-        weekText += `${day.date} ${day.weather} ${day.minTemp}°~${day.maxTemp}°`;
+        weekText += `${day.date} ${day.weather}`;
+        if (day.avgTemp !== null) {
+          weekText += ` ${day.avgTemp}°`;
+        }
         if (day.pop && day.pop !== '--') {
           weekText += ` ☔${day.pop}%`;
         }
@@ -274,9 +271,12 @@ async function getCurrentWeather() {
     const maxT = elements36.find(e => e.elementName === "MaxT").time;
     
     const currentWeather = wx[0].parameter.parameterName;
-    const currentMinTemp = minT[0].parameter.parameterName;
-    const currentMaxTemp = maxT[0].parameter.parameterName;
+    const currentMinTemp = parseFloat(minT[0].parameter.parameterName);
+    const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
     const currentPop = pop[0].parameter.parameterName;
+    
+    // 計算目前溫度的平均值
+    const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
     // ===== 嘗試取得2小時預報，失敗則用備用方案 =====
     const twoHourForecast = await get2HourForecast();
@@ -318,9 +318,12 @@ async function getCurrentWeather() {
     let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
     result += `━━━━━━━━━━━━\n\n`;
     
-    result += `🌡 目前氣溫：${currentMinTemp}°C ~ ${currentMaxTemp}°C\n`;
-    result += `☁️ 天氣：${currentWeather}\n`;
-    result += `☔ 降雨機率：${currentPop}%\n`;
+    // 顯示平均溫度
+    result += `🌡 目前溫度 ${currentAvgTemp}°`;
+    if (currentPop && currentPop !== '--') {
+      result += `  ☔${currentPop}%`;
+    }
+    result += `\n☁️ ${currentWeather}\n`;
     
     if (twoHourText) {
       result += `\n🕒 未來10小時\n`;
