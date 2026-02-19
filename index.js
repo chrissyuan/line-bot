@@ -1,16 +1,13 @@
 const express = require("express");
 const axios = require("axios");
-const express = require("express");
-const axios = require("axios");
 
 const app = express();
 app.use(express.json());
 
 const CWA_API_KEY = process.env.CWA_API_KEY;
+const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 
-
-
-// ====== 防止程式直接崩潰 ======
+// ===== 防止程式崩潰 =====
 process.on("uncaughtException", err => {
   console.error("未捕捉錯誤:", err);
 });
@@ -19,93 +16,111 @@ process.on("unhandledRejection", err => {
   console.error("Promise錯誤:", err);
 });
 
-// ====== 天氣主功能 ======
+// ===== 取得天氣 =====
 async function getWeather() {
   try {
 
-    // ===== 36小時預報 =====
-    const res36 = await axios.get(
+    const res = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
 
-    const location36 = res36.data.records.location[0];
-    const elements36 = location36.weatherElement;
+    const location = res.data.records.location[0];
+    const elements = location.weatherElement;
 
-    const wx = elements36.find(e => e.elementName === "Wx").time;
-    const pop = elements36.find(e => e.elementName === "PoP").time;
-    const minT = elements36.find(e => e.elementName === "MinT").time[0].parameter.parameterName;
-    const maxT = elements36.find(e => e.elementName === "MaxT").time[0].parameter.parameterName;
+    const wx = elements.find(e => e.elementName === "Wx").time;
+    const pop = elements.find(e => e.elementName === "PoP").time;
+    const minT = elements.find(e => e.elementName === "MinT").time;
+    const maxT = elements.find(e => e.elementName === "MaxT").time;
 
-    let sixHourText = "";
-    for (let i = 0; i < 3; i++) {
-      const start = wx[i].startTime.substring(11, 16);
-      const end = wx[i].endTime.substring(11, 16);
-      const weather = wx[i].parameter.parameterName;
-      const rain = pop[i].parameter.parameterName;
+    const now = new Date();
+    const endTime = new Date(now.getTime() + 10 * 60 * 60 * 1000);
 
-      sixHourText += `${start}-${end} ${weather} ☔${rain}%\n`;
-    }
+    let output = `📍 宜蘭縣未來10小時天氣\n`;
+    output += `━━━━━━━━━━━━\n\n`;
 
-    // ===== 7天預報 =====
-    const res7 = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-003?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-    );
+    let currentTime = new Date(now);
 
-    const locations = res7.data.records?.locations?.[0]?.location;
+    while (currentTime < endTime) {
 
-    let weekText = "";
+      const nextTime = new Date(currentTime.getTime() + 2 * 60 * 60 * 1000);
 
-    if (locations && locations.length > 0) {
-      const location7 = locations[0];
-      const elements7 = location7.weatherElement;
+      // 找出目前時間落在哪個 API 區間
+      const index = wx.findIndex(t => {
+        const start = new Date(t.startTime);
+        const end = new Date(t.endTime);
+        return currentTime >= start && currentTime < end;
+      });
 
-      const wx7 = elements7.find(e => e.elementName === "Wx")?.time || [];
-      const minT7 = elements7.find(e => e.elementName === "MinT")?.time || [];
-      const maxT7 = elements7.find(e => e.elementName === "MaxT")?.time || [];
+      if (index !== -1) {
+        const weather = wx[index].parameter.parameterName;
+        const rain = pop[index].parameter.parameterName;
+        const minTemp = minT[index].parameter.parameterName;
+        const maxTemp = maxT[index].parameter.parameterName;
 
-      for (let i = 0; i < 5 && i < wx7.length; i++) {
-        const date = wx7[i].startTime.substring(5, 10);
-        const weather = wx7[i].elementValue?.[0]?.value || "--";
-        const minTemp = minT7[i]?.elementValue?.[0]?.value || "--";
-        const maxTemp = maxT7[i]?.elementValue?.[0]?.value || "--";
+        const startStr = currentTime.toTimeString().substring(0,5);
+        const endStr = nextTime.toTimeString().substring(0,5);
 
-        weekText += `${date} ${weather} ${maxTemp}°/${minTemp}°\n`;
+        output += `${startStr}-${endStr}\n`;
+        output += `天氣：${weather}\n`;
+        output += `溫度：${minTemp}°C ~ ${maxTemp}°C\n`;
+        output += `降雨率：${rain}%\n\n`;
       }
-    } else {
-      weekText = "暫無資料\n";
+
+      currentTime = nextTime;
     }
 
-    return (
-      `📍 宜蘭縣天氣總覽\n` +
-      `━━━━━━━━━━━━\n\n` +
-      `🌡 氣溫：${minT}°C ~ ${maxT}°C\n` +
-      `☁️ 天氣：${wx[0].parameter.parameterName}\n` +
-      `☔ 降雨機率：${pop[0].parameter.parameterName}%\n\n` +
-      `🕒 未來 6 小時區間\n` +
-      sixHourText +
-      `\n📅 未來 5 天\n` +
-      weekText +
-      `━━━━━━━━━━━━\n資料來源：中央氣象署`
-    );
+    output += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
+
+    return output;
 
   } catch (error) {
-    console.error("錯誤內容：", error.response?.data || error.message);
+    console.error(error.response?.data || error.message);
     return "⚠️ 無法取得天氣資料";
   }
 }
 
-// ====== 測試首頁 ======
-app.get("/", async (req, res) => {
-  res.send("LINE 天氣機器人運行中 ☀️");
+// ===== LINE Webhook =====
+app.post("/webhook", async (req, res) => {
+  try {
+    const events = req.body.events;
+
+    for (let event of events) {
+      if (event.type === "message" && event.message.type === "text") {
+
+        const weatherText = await getWeather();
+
+        await axios.post(
+          "https://api.line.me/v2/bot/message/reply",
+          {
+            replyToken: event.replyToken,
+            messages: [
+              { type: "text", text: weatherText }
+            ]
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${CHANNEL_ACCESS_TOKEN}`
+            }
+          }
+        );
+      }
+    }
+
+    res.sendStatus(200);
+
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.sendStatus(500);
+  }
 });
 
-// ====== 取得天氣 API ======
-app.get("/weather", async (req, res) => {
-  const result = await getWeather();
-  res.send(result);
+// ===== 測試首頁 =====
+app.get("/", (req, res) => {
+  res.send("LINE 天氣機器人運行中");
 });
 
-// ====== Render 必須用這個 PORT ======
+// ===== Render PORT =====
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
