@@ -74,70 +74,49 @@ async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
     
-    // 宜蘭縣的鄉鎮預報資料集
-    const yilanDatasets = [
-      { id: 'F-D0047-069', name: '宜蘭縣' },  // 宜蘭縣
-      { id: 'F-D0047-073', name: '宜蘭縣2' }, // 另一個宜蘭縣資料集
-      { id: 'F-D0047-001', name: '一般鄉鎮' }  // 全臺鄉鎮
-    ];
-    
-    for (const ds of yilanDatasets) {
-      debugText += `\n📡 ${ds.id} (找礁溪鄉):\n`;
-      try {
-        const response = await axios.get(
-          `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${ds.id}?` +
-          `Authorization=${CWA_API_KEY}&` +
-          `locationName=礁溪鄉`
-        );
+    // 使用 F-D0047-001
+    debugText += `📡 F-D0047-001 (礁溪鄉):\n`;
+    try {
+      const response = await axios.get(
+        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
+        `Authorization=${CWA_API_KEY}&` +
+        `locationName=礁溪鄉`
+      );
+      
+      debugText += `狀態: ${response.data.success}\n`;
+      
+      if (response.data.records && response.data.records.Locations) {
+        const locations = response.data.records.Locations;
+        debugText += `Locations 長度: ${locations.length}\n`;
         
-        debugText += `狀態: ${response.data.success}\n`;
-        
-        if (response.data.records) {
-          if (response.data.records.Locations) {
-            const locations = response.data.records.Locations;
-            debugText += `Locations 長度: ${locations.length}\n`;
+        if (locations.length > 0) {
+          const firstLoc = locations[0];
+          if (firstLoc.Location) {
+            debugText += `Location 長度: ${firstLoc.Location.length}\n`;
             
-            if (locations.length > 0) {
-              const firstLoc = locations[0];
-              if (firstLoc.Location) {
-                debugText += `Location 長度: ${firstLoc.Location.length}\n`;
+            if (firstLoc.Location.length > 0) {
+              const jiaoxi = firstLoc.Location[0];
+              debugText += `地點名稱: ${jiaoxi.LocationName}\n`;
+              
+              if (jiaoxi.WeatherElement) {
+                const elements = jiaoxi.WeatherElement.map(e => e.ElementName).join(', ');
+                debugText += `天氣元素: ${elements}\n`;
                 
-                if (firstLoc.Location.length > 0) {
-                  // 顯示第一個地點名稱
-                  debugText += `第一個地點: ${firstLoc.Location[0].LocationName}\n`;
-                  
-                  // 找礁溪鄉
-                  const jiaoxi = firstLoc.Location.find(l => 
-                    l.LocationName && l.LocationName.includes('礁溪')
-                  );
-                  
-                  if (jiaoxi) {
-                    debugText += `✅ 找到礁溪鄉！\n`;
-                    
-                    // 檢查有沒有 PoP
-                    const pop = jiaoxi.WeatherElement?.find(e => e.ElementName === 'PoP');
-                    if (pop) {
-                      debugText += `PoP 筆數: ${pop.Time?.length || 0}\n`;
-                      if (pop.Time && pop.Time.length > 0) {
-                        debugText += `第一筆降雨: ${pop.Time[0].ElementValue?.[0]?.Value}%\n`;
-                      }
-                    }
-                  } else {
-                    debugText += `❌ 找不到礁溪鄉\n`;
-                    // 顯示前3個地點
-                    debugText += `前3個地點:\n`;
-                    for (let i = 0; i < Math.min(3, firstLoc.Location.length); i++) {
-                      debugText += `  ${firstLoc.Location[i].LocationName}\n`;
-                    }
+                const pop = jiaoxi.WeatherElement.find(e => e.ElementName === 'PoP');
+                if (pop && pop.Time) {
+                  debugText += `降雨機率筆數: ${pop.Time.length}\n`;
+                  if (pop.Time.length > 0) {
+                    debugText += `第一筆時間: ${pop.Time[0].StartTime}\n`;
+                    debugText += `第一筆數值: ${pop.Time[0].ElementValue?.[0]?.Value}%\n`;
                   }
                 }
               }
             }
           }
         }
-      } catch (e) {
-        debugText += `❌ 失敗: ${e.message}\n`;
       }
+    } catch (e) {
+      debugText += `❌ 失敗: ${e.message}\n`;
     }
     
     if (debugText.length > 4900) {
@@ -158,6 +137,259 @@ function calculateAverageTemp(min, max) {
     return Math.round(avg * 10) / 10;
   }
   return null;
+}
+
+// 獲取未來5天的日期（格式：MM/DD）
+function getFutureDates(days = 5) {
+  const dates = [];
+  const today = new Date();
+  const twTime = new Date(today.getTime() + (8 * 60 * 60 * 1000));
+  
+  for (let i = 1; i <= days; i++) {
+    const futureDate = new Date(twTime.getTime() + (i * 24 * 60 * 60 * 1000));
+    const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+    const day = String(futureDate.getDate()).padStart(2, '0');
+    dates.push(`${month}/${day}`);
+  }
+  
+  return dates;
+}
+
+// 從 F-D0047-001 API 獲取2小時間隔的預報（礁溪鄉）
+async function getHourlyForecast() {
+  try {
+    console.log('開始取得小時預報（F-D0047-001 礁溪鄉）...');
+    
+    const response = await axios.get(
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
+      `Authorization=${CWA_API_KEY}&` +
+      `locationName=礁溪鄉&` +
+      `elementName=Wx,MinT,MaxT,PoP`
+    );
+
+    console.log('小時預報 API 回應狀態:', response.data.success);
+    
+    if (!response.data.records || !response.data.records.Locations) {
+      console.log('找不到 records.Locations');
+      return { temp: null, pop: null };
+    }
+    
+    const locationsList = response.data.records.Locations;
+    if (!locationsList || locationsList.length === 0) {
+      return { temp: null, pop: null };
+    }
+    
+    const firstLocations = locationsList[0];
+    const locationArray = firstLocations.Location;
+    if (!locationArray || locationArray.length === 0) {
+      return { temp: null, pop: null };
+    }
+    
+    // 礁溪鄉應該是第一個地點
+    const jiaoxiData = locationArray[0];
+    console.log('使用地點:', jiaoxiData.LocationName);
+    
+    const weatherElements = jiaoxiData.WeatherElement || [];
+    
+    const wxData = weatherElements.find(e => e.ElementName === 'Wx')?.Time || [];
+    const minTData = weatherElements.find(e => e.ElementName === 'MinT')?.Time || [];
+    const maxTData = weatherElements.find(e => e.ElementName === 'MaxT')?.Time || [];
+    const popData = weatherElements.find(e => e.ElementName === 'PoP')?.Time || [];
+    
+    console.log(`找到資料 - 天氣:${wxData.length}, 低溫:${minTData.length}, 高溫:${maxTData.length}, 降雨:${popData.length}`);
+    
+    // 獲取當前時間
+    const now = new Date();
+    const twTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const currentHour = twTime.getHours();
+    const currentMinute = twTime.getMinutes();
+    const currentDate = `${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
+    
+    // 決定起始時間
+    let startHour = currentHour;
+    if (currentMinute < 30) {
+      startHour = currentHour + 1;
+    } else {
+      startHour = currentHour + 2;
+    }
+    
+    let tempText = "";
+    let popText = "";
+    let foundCount = 0;
+    
+    // 使用溫度資料
+    if (minTData.length > 0 && maxTData.length > 0) {
+      for (let i = 0; i < minTData.length && foundCount < 5; i++) {
+        const minItem = minTData[i];
+        const maxItem = maxTData[i];
+        const popItem = popData[i];
+        
+        const startTime = minItem.StartTime || minItem.DataTime;
+        
+        if (startTime) {
+          const itemHour = parseInt(startTime.substring(11, 13));
+          const itemDate = startTime.substring(5, 10).replace('-', '/');
+          
+          const isToday = itemDate === currentDate;
+          const isFuture = (isToday && itemHour >= startHour) || 
+                          (!isToday && foundCount > 0);
+          
+          if (isFuture) {
+            const endHour = (itemHour + 2) % 24;
+            const startTimeStr = `${String(itemHour).padStart(2, '0')}:00`;
+            const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
+            
+            let dayMark = "";
+            if (!isToday) {
+              dayMark = " (明日)";
+            } else if (endHour < itemHour) {
+              dayMark = " (跨日)";
+            }
+            
+            const minTemp = minItem.ElementValue?.[0]?.Value;
+            const maxTemp = maxItem.ElementValue?.[0]?.Value;
+            const pop = popItem?.ElementValue?.[0]?.Value;
+            
+            let avgTemp = null;
+            if (minTemp && maxTemp) {
+              avgTemp = calculateAverageTemp(minTemp, maxTemp);
+            }
+            
+            // 溫度文字
+            let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark}`;
+            if (avgTemp !== null) {
+              tempSlot += ` ${avgTemp}°`;
+            }
+            tempText += tempSlot + '\n';
+            
+            // 降雨文字
+            if (pop && pop !== '--') {
+              let popSlot = `${startTimeStr}-${endTimeStr}${dayMark} ☔${pop}%`;
+              popText += popSlot + '\n';
+            }
+            
+            foundCount++;
+          }
+        }
+      }
+    }
+    
+    return {
+      temp: tempText || null,
+      pop: popText || null,
+      location: jiaoxiData.LocationName
+    };
+
+  } catch (error) {
+    console.log("小時預報錯誤：", error.message);
+    return { temp: null, pop: null, location: null };
+  }
+}
+
+// 從 API 獲取未來5天預報（礁溪鄉）
+async function get7DayForecast() {
+  try {
+    const response = await axios.get(
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
+      `Authorization=${CWA_API_KEY}&` +
+      `locationName=礁溪鄉&` +
+      `elementName=Wx,MinT,MaxT,PoP`
+    );
+
+    if (!response.data.records || !response.data.records.Locations) {
+      return "";
+    }
+    
+    const locationsList = response.data.records.Locations;
+    if (!locationsList || locationsList.length === 0) {
+      return "";
+    }
+    
+    const firstLocations = locationsList[0];
+    const locationArray = firstLocations.Location;
+    if (!locationArray || locationArray.length === 0) {
+      return "";
+    }
+    
+    const jiaoxiData = locationArray[0];
+    
+    const weatherElements = jiaoxiData.WeatherElement || [];
+    
+    const wxData = weatherElements.find(e => e.ElementName === 'Wx')?.Time || [];
+    const minTData = weatherElements.find(e => e.ElementName === 'MinT')?.Time || [];
+    const maxTData = weatherElements.find(e => e.ElementName === 'MaxT')?.Time || [];
+    const popData = weatherElements.find(e => e.ElementName === 'PoP')?.Time || [];
+    
+    const futureDates = getFutureDates(5);
+    
+    let weekForecast = [];
+    
+    for (let i = 0; i < futureDates.length; i++) {
+      const targetDate = futureDates[i];
+      
+      const wx = wxData.find(item => {
+        const startTime = item.StartTime || item.DataTime;
+        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+      });
+      
+      const minT = minTData.find(item => {
+        const startTime = item.StartTime || item.DataTime;
+        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+      });
+      
+      const maxT = maxTData.find(item => {
+        const startTime = item.StartTime || item.DataTime;
+        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+      });
+      
+      const pop = popData.find(item => {
+        const startTime = item.StartTime || item.DataTime;
+        return startTime && startTime.substring(5, 10).replace('-', '/') === targetDate;
+      });
+      
+      if (wx || minT || maxT) {
+        let weather = "";
+        if (wx?.ElementValue) {
+          if (Array.isArray(wx.ElementValue)) {
+            weather = wx.ElementValue[0]?.Value || "";
+          }
+        }
+        
+        const minTemp = minT?.ElementValue?.[0]?.Value;
+        const maxTemp = maxT?.ElementValue?.[0]?.Value;
+        const avgTemp = calculateAverageTemp(minTemp, maxTemp);
+        const rain = pop?.ElementValue?.[0]?.Value;
+        
+        weekForecast.push({
+          date: targetDate,
+          weather: weather,
+          avgTemp: avgTemp,
+          pop: rain
+        });
+      }
+    }
+    
+    if (weekForecast.length > 0) {
+      let weekText = "";
+      for (const day of weekForecast) {
+        weekText += `${day.date} ${day.weather}`;
+        if (day.avgTemp !== null) {
+          weekText += ` ${day.avgTemp}°`;
+        }
+        if (day.pop && day.pop !== '--') {
+          weekText += ` ☔${day.pop}%`;
+        }
+        weekText += '\n';
+      }
+      return weekText;
+    }
+    
+    return "";
+
+  } catch (error) {
+    console.log("7天預報錯誤：", error.message);
+    return "";
+  }
 }
 
 // 生成2小時間隔的時間區間（備用方案）
@@ -219,6 +451,12 @@ async function getCurrentWeather() {
     const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
+    
+    // ===== 從 F-D0047-001 獲取小時預報（礁溪鄉）=====
+    const hourly = await getHourlyForecast();
+
+    // ===== 從 F-D0047-001 獲取未來5天預報（礁溪鄉）=====
+    const weekForecast = await get7DayForecast();
 
     // 獲取今天的日期顯示
     const today = new Date();
@@ -226,35 +464,51 @@ async function getCurrentWeather() {
     const todayStr = `${twTime.getFullYear()}/${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
     const currentTimeStr = `${String(twTime.getHours()).padStart(2, '0')}:${String(twTime.getMinutes()).padStart(2, '0')}`;
 
-    let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
+    let result = `📍 礁溪鄉 (${todayStr} ${currentTimeStr})\n`;
     result += `━━━━━━━━━━━━\n\n`;
     
     result += `🌡 目前溫度 ${currentAvgTemp}°\n`;
     result += `☁️ ${currentWeather}\n`;
     
-    // 備用方案：用36小時預報
-    result += `\n🕒 未來10小時溫度（36hr預報）\n`;
-    const timeSlots = generate2HourSlots();
-    for (let i = 0; i < timeSlots.length; i++) {
-      const slot = timeSlots[i];
-      const forecastIndex = Math.min(i, wx.length - 1);
-      const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
-      const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
-      
-      let avgTemp = null;
-      if (!isNaN(minTemp) && !isNaN(maxTemp)) {
-        avgTemp = Math.round(((minTemp + maxTemp) / 2) * 10) / 10;
+    // 優先顯示降雨機率
+    if (hourly.pop) {
+      result += `\n🕒 未來10小時降雨機率\n`;
+      result += hourly.pop;
+    } 
+    // 如果沒有降雨機率，顯示溫度
+    else if (hourly.temp) {
+      result += `\n🕒 未來10小時溫度\n`;
+      result += hourly.temp;
+    }
+    // 最後的備用方案
+    else {
+      result += `\n🕒 未來10小時溫度（36hr預報）\n`;
+      const timeSlots = generate2HourSlots();
+      for (let i = 0; i < timeSlots.length; i++) {
+        const slot = timeSlots[i];
+        const forecastIndex = Math.min(i, wx.length - 1);
+        const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
+        const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
+        
+        let avgTemp = null;
+        if (!isNaN(minTemp) && !isNaN(maxTemp)) {
+          avgTemp = Math.round(((minTemp + maxTemp) / 2) * 10) / 10;
+        }
+        
+        let slotText = `${slot.start}-${slot.end}${slot.dayMark}`;
+        if (avgTemp !== null) {
+          slotText += ` ${avgTemp}°`;
+        }
+        result += slotText + '\n';
       }
-      
-      let slotText = `${slot.start}-${slot.end}${slot.dayMark}`;
-      if (avgTemp !== null) {
-        slotText += ` ${avgTemp}°`;
-      }
-      result += slotText + '\n';
     }
     
-    result += `\n⚠️ 正在尋找宜蘭縣的正確資料集，請輸入 !debug 查看進度\n`;
-    result += `━━━━━━━━━━━━\n資料來源：中央氣象署`;
+    if (weekForecast) {
+      result += `\n📅 未來5天\n`;
+      result += weekForecast;
+    }
+    
+    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-001)`;
 
     return result;
 
