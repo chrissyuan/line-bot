@@ -105,14 +105,8 @@ async function getDebugInfo() {
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
                   if (temp.Time.length > 0) {
-                    // 顯示前5筆溫度的時間和數值
-                    debugText += `前5筆溫度資料:\n`;
-                    for (let i = 0; i < Math.min(5, temp.Time.length); i++) {
-                      const t = temp.Time[i];
-                      const time = t.StartTime || t.DataTime;
-                      const value = getElementValue(t.ElementValue);
-                      debugText += `  ${time}: ${value}°\n`;
-                    }
+                    // 顯示第一筆溫度的完整結構
+                    debugText += `第一筆溫度完整結構: ${JSON.stringify(temp.Time[0])}\n`;
                   }
                 }
               }
@@ -188,6 +182,20 @@ function getElementValue(elementValue) {
   return null;
 }
 
+// 安全地取得時間
+function getTimeString(timeObj) {
+  if (!timeObj) return null;
+  
+  // 嘗試各種可能的時間欄位名稱
+  return timeObj.StartTime || 
+         timeObj.startTime || 
+         timeObj.開始時間 || 
+         timeObj.DataTime || 
+         timeObj.dataTime || 
+         timeObj.資料時間 ||
+         null;
+}
+
 // 獲取未來5天的日期（格式：MM/DD）
 function getFutureDates(days = 5) {
   const dates = [];
@@ -215,7 +223,7 @@ async function getHourlyTemperature() {
       `locationName=礁溪鄉`
     );
 
-    console.log('小時預報 API 回應狀態:', response.data.success);
+    console.log('API 回應狀態:', response.data.success);
     
     if (!response.data.records || !response.data.records.Locations) {
       console.log('找不到 records.Locations');
@@ -252,10 +260,9 @@ async function getHourlyTemperature() {
       return null;
     }
     
-    // 顯示前幾筆溫度資料的時間
+    // 顯示前幾筆溫度資料的完整結構
     for (let i = 0; i < Math.min(3, tempData.length); i++) {
-      const t = tempData[i];
-      console.log(`溫度[${i}] 時間: ${t.StartTime}, 數值: ${JSON.stringify(t.ElementValue)}`);
+      console.log(`溫度[${i}] 完整結構:`, JSON.stringify(tempData[i]));
     }
     
     // 獲取當前時間
@@ -283,41 +290,47 @@ async function getHourlyTemperature() {
     for (let i = 0; i < tempData.length && foundCount < 5; i++) {
       const tempItem = tempData[i];
       
-      const startTime = tempItem.StartTime || tempItem.DataTime;
+      const timeStr = getTimeString(tempItem);
       
-      if (startTime) {
-        const itemHour = parseInt(startTime.substring(11, 13));
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
-        
-        const isToday = itemDate === currentDate;
-        
-        console.log(`檢查: ${itemDate} ${itemHour}:00, isToday=${isToday}, 已找到=${foundCount}`);
-        
-        const isFuture = (isToday && itemHour >= startHour) || 
-                        (!isToday && foundCount > 0);
-        
-        if (isFuture) {
-          const endHour = (itemHour + 2) % 24;
-          const startTimeStr = `${String(itemHour).padStart(2, '0')}:00`;
-          const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
+      if (timeStr) {
+        try {
+          const itemHour = parseInt(timeStr.substring(11, 13));
+          const itemDate = timeStr.substring(5, 10).replace('-', '/');
           
-          let dayMark = "";
-          if (!isToday) {
-            dayMark = " (明日)";
-          } else if (endHour < itemHour) {
-            dayMark = " (跨日)";
+          const isToday = itemDate === currentDate;
+          
+          console.log(`檢查: ${itemDate} ${itemHour}:00, isToday=${isToday}, 已找到=${foundCount}`);
+          
+          const isFuture = (isToday && itemHour >= startHour) || 
+                          (!isToday && foundCount > 0);
+          
+          if (isFuture) {
+            const endHour = (itemHour + 2) % 24;
+            const startTimeStr = `${String(itemHour).padStart(2, '0')}:00`;
+            const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
+            
+            let dayMark = "";
+            if (!isToday) {
+              dayMark = " (明日)";
+            } else if (endHour < itemHour) {
+              dayMark = " (跨日)";
+            }
+            
+            const temp = getElementValue(tempItem.ElementValue);
+            
+            console.log(`✓ 選中: ${startTimeStr}-${endTimeStr}${dayMark}, 溫度=${temp}`);
+            
+            if (temp) {
+              let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark} ${temp}°`;
+              tempText += tempSlot + '\n';
+              foundCount++;
+            }
           }
-          
-          const temp = getElementValue(tempItem.ElementValue);
-          
-          console.log(`✓ 選中: ${startTimeStr}-${endTimeStr}${dayMark}, 溫度=${temp}`);
-          
-          if (temp) {
-            let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark} ${temp}°`;
-            tempText += tempSlot + '\n';
-            foundCount++;
-          }
+        } catch (e) {
+          console.log('解析時間錯誤:', e.message);
         }
+      } else {
+        console.log(`溫度[${i}] 沒有時間欄位`);
       }
     }
     
@@ -375,25 +388,25 @@ async function get7DayForecast() {
       
       // 找當天的天氣現象
       const wx = wxData.find(item => {
-        const startTime = item.StartTime || item.DataTime;
-        if (!startTime) return false;
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        const timeStr = getTimeString(item);
+        if (!timeStr) return false;
+        const itemDate = timeStr.substring(5, 10).replace('-', '/');
         return itemDate === targetDate;
       });
       
       // 找當天的溫度資料
       const tempItems = tempData.filter(item => {
-        const startTime = item.StartTime || item.DataTime;
-        if (!startTime) return false;
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        const timeStr = getTimeString(item);
+        if (!timeStr) return false;
+        const itemDate = timeStr.substring(5, 10).replace('-', '/');
         return itemDate === targetDate;
       });
       
       // 找當天的降雨機率資料
       const popItems = popData.filter(item => {
-        const startTime = item.StartTime || item.DataTime;
-        if (!startTime) return false;
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        const timeStr = getTimeString(item);
+        if (!timeStr) return false;
+        const itemDate = timeStr.substring(5, 10).replace('-', '/');
         return itemDate === targetDate;
       });
       
