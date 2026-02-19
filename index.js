@@ -105,8 +105,9 @@ async function getDebugInfo() {
                 if (pop && pop.Time) {
                   debugText += `降雨機率筆數: ${pop.Time.length}\n`;
                   if (pop.Time.length > 0) {
-                    debugText += `第一筆時間: ${pop.Time[0].StartTime}\n`;
-                    debugText += `第一筆數值結構: ${JSON.stringify(pop.Time[0].ElementValue)}\n`;
+                    // 顯示所有降雨機率值
+                    const popValues = pop.Time.map(t => getElementValue(t.ElementValue)).filter(v => v);
+                    debugText += `降雨機率值: ${popValues.join(', ')}%\n`;
                   }
                 }
                 
@@ -114,7 +115,8 @@ async function getDebugInfo() {
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
                   if (temp.Time.length > 0) {
-                    debugText += `第一筆溫度結構: ${JSON.stringify(temp.Time[0].ElementValue)}\n`;
+                    const tempValues = temp.Time.map(t => getElementValue(t.ElementValue)).filter(v => v);
+                    debugText += `溫度值: ${tempValues.slice(0, 10).join(', ')}°\n`;
                   }
                 }
               }
@@ -187,15 +189,6 @@ function getElementValue(elementValue) {
     return elementValue;
   }
   
-  return null;
-}
-
-// 計算溫度平均值（保留以備不時之需）
-function calculateAverageTemp(min, max) {
-  if (min && max && min !== '--' && max !== '--') {
-    const avg = (parseFloat(min) + parseFloat(max)) / 2;
-    return Math.round(avg * 10) / 10;
-  }
   return null;
 }
 
@@ -364,14 +357,6 @@ async function get7DayForecast() {
     for (let i = 0; i < futureDates.length; i++) {
       const targetDate = futureDates[i];
       
-      // 找當天的最低溫和最高溫
-      const temps = tempData.filter(item => {
-        const startTime = item.StartTime || item.DataTime;
-        if (!startTime) return false;
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
-        return itemDate === targetDate;
-      }).map(item => parseFloat(getElementValue(item.ElementValue)));
-      
       // 找當天的天氣現象（取中午左右的資料）
       const wx = wxData.find(item => {
         const startTime = item.StartTime || item.DataTime;
@@ -381,17 +366,40 @@ async function get7DayForecast() {
         return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
       });
       
-      // 找當天的降雨機率（取最高的）
-      const pops = popData.filter(item => {
+      // 找當天的溫度資料
+      const tempItems = tempData.filter(item => {
         const startTime = item.StartTime || item.DataTime;
         if (!startTime) return false;
         const itemDate = startTime.substring(5, 10).replace('-', '/');
         return itemDate === targetDate;
-      }).map(item => parseFloat(getElementValue(item.ElementValue)));
+      });
+      
+      // 找當天的降雨機率資料
+      const popItems = popData.filter(item => {
+        const startTime = item.StartTime || item.DataTime;
+        if (!startTime) return false;
+        const itemDate = startTime.substring(5, 10).replace('-', '/');
+        return itemDate === targetDate;
+      });
       
       const weather = getElementValue(wx?.ElementValue) || '';
+      
+      // 計算最低溫和最高溫
+      const temps = tempItems
+        .map(item => parseFloat(getElementValue(item.ElementValue)))
+        .filter(t => !isNaN(t));
+      
       const minTemp = temps.length > 0 ? Math.min(...temps) : null;
       const maxTemp = temps.length > 0 ? Math.max(...temps) : null;
+      
+      // 計算最高降雨機率（保留原始值，不做四捨五入）
+      const pops = popItems
+        .map(item => {
+          const val = getElementValue(item.ElementValue);
+          return val ? parseFloat(val) : null;
+        })
+        .filter(p => p !== null && p > 0);
+      
       const maxPop = pops.length > 0 ? Math.max(...pops) : null;
       
       let dayText = targetDate;
@@ -399,7 +407,7 @@ async function get7DayForecast() {
       if (minTemp !== null && maxTemp !== null) {
         dayText += ` ${minTemp}°~${maxTemp}°`;
       }
-      if (maxPop !== null && maxPop > 0) {
+      if (maxPop !== null) {
         dayText += ` ☔${maxPop}%`;
       }
       weekForecast.push(dayText);
@@ -455,7 +463,7 @@ function generate2HourSlots() {
 
 async function getCurrentWeather() {
   try {
-    // ===== 36小時預報（用於目前天氣）=====
+    // ===== 36小時預報（用於目前天氣和降雨）=====
     const res36 = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
@@ -464,12 +472,14 @@ async function getCurrentWeather() {
     const elements36 = location36.weatherElement;
 
     const wx = elements36.find(e => e.elementName === "Wx").time;
+    const pop = elements36.find(e => e.elementName === "PoP").time;
     const minT = elements36.find(e => e.elementName === "MinT").time;
     const maxT = elements36.find(e => e.elementName === "MaxT").time;
     
     const currentWeather = wx[0].parameter.parameterName;
     const currentMinTemp = parseFloat(minT[0].parameter.parameterName);
     const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
+    const currentPop = pop[0].parameter.parameterName; // 目前降雨機率
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
@@ -488,8 +498,12 @@ async function getCurrentWeather() {
     let result = `📍 礁溪鄉 (${todayStr} ${currentTimeStr})\n`;
     result += `━━━━━━━━━━━━\n\n`;
     
-    result += `🌡 目前溫度 ${currentAvgTemp}°\n`;
-    result += `☁️ ${currentWeather}\n`;
+    // 目前溫度加上降雨機率
+    result += `🌡 目前溫度 ${currentAvgTemp}°`;
+    if (currentPop && currentPop !== '--') {
+      result += `  ☔${currentPop}%`;
+    }
+    result += `\n☁️ ${currentWeather}\n`;
     
     // 顯示未來10小時溫度
     if (hourlyTemp) {
