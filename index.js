@@ -65,7 +65,7 @@ async function handleEvent(event) {
 function calculateAverageTemp(min, max) {
   if (min && max && min !== '--' && max !== '--') {
     const avg = (parseFloat(min) + parseFloat(max)) / 2;
-    return Math.round(avg * 10) / 10; // 四捨五入到小數點第一位
+    return Math.round(avg * 10) / 10;
   }
   return null;
 }
@@ -183,6 +183,11 @@ async function get7DayForecast() {
     const maxTData = weatherElements.find(e => e.ElementName === 'MaxT')?.Time || [];
     const popData = weatherElements.find(e => e.ElementName === 'PoP')?.Time || [];
     
+    console.log('原始降雨機率資料:', popData.map(p => ({
+      時間: p.StartTime?.substring(5, 16),
+      降雨機率: p.ElementValue?.[0]?.Value
+    })));
+    
     const futureDates = getFutureDates(5);
     
     let weekForecast = [];
@@ -221,14 +226,18 @@ async function get7DayForecast() {
         const minTemp = minT?.ElementValue?.[0]?.Value;
         const maxTemp = maxT?.ElementValue?.[0]?.Value;
         const avgTemp = calculateAverageTemp(minTemp, maxTemp);
+        
+        // 直接取原始降雨機率值，不做任何處理
         const rain = pop?.ElementValue?.[0]?.Value;
         
         weekForecast.push({
           date: targetDate,
           weather: weather,
           avgTemp: avgTemp,
-          pop: rain
+          pop: rain // 保持原始值
         });
+        
+        console.log(`日期 ${targetDate}: 降雨機率原始值 = ${rain}`);
       }
     }
     
@@ -240,7 +249,7 @@ async function get7DayForecast() {
           weekText += ` ${day.avgTemp}°`;
         }
         if (day.pop && day.pop !== '--') {
-          weekText += ` ☔${day.pop}%`;
+          weekText += ` ☔${day.pop}%`; // 直接顯示原始值
         }
         weekText += '\n';
       }
@@ -273,9 +282,12 @@ async function getCurrentWeather() {
     const currentWeather = wx[0].parameter.parameterName;
     const currentMinTemp = parseFloat(minT[0].parameter.parameterName);
     const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
+    
+    // 直接取原始降雨機率值，不做任何處理
     const currentPop = pop[0].parameter.parameterName;
     
-    // 計算目前溫度的平均值
+    console.log('目前降雨機率原始值:', currentPop);
+    
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
     // ===== 嘗試取得2小時預報，失敗則用備用方案 =====
@@ -290,6 +302,7 @@ async function getCurrentWeather() {
         const forecastIndex = Math.min(i, wx.length - 1);
         const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
         const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
+        const rain = pop[forecastIndex]?.parameter?.parameterName; // 直接取原始值
         
         let avgTemp = null;
         if (!isNaN(minTemp) && !isNaN(maxTemp)) {
@@ -299,6 +312,9 @@ async function getCurrentWeather() {
         let slotText = `${slot.start}-${slot.end}${slot.dayMark} `;
         if (avgTemp !== null) {
           slotText += `溫度 ${avgTemp}°`;
+        }
+        if (rain && rain !== '--') {
+          slotText += ` ☔${rain}%`; // 直接顯示原始值
         }
         twoHourText += slotText + '\n';
       }
@@ -318,10 +334,9 @@ async function getCurrentWeather() {
     let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
     result += `━━━━━━━━━━━━\n\n`;
     
-    // 顯示平均溫度
     result += `🌡 目前溫度 ${currentAvgTemp}°`;
     if (currentPop && currentPop !== '--') {
-      result += `  ☔${currentPop}%`;
+      result += `  ☔${currentPop}%`; // 直接顯示原始值
     }
     result += `\n☁️ ${currentWeather}\n`;
     
