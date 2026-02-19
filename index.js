@@ -84,32 +84,15 @@ async function getDebugInfo() {
       
       debugText += `狀態: ${response.data.success}\n`;
       
-      if (response.data.records && response.data.records.Locations) {
-        const locations = response.data.records.Locations;
-        debugText += `Locations 長度: ${locations.length}\n`;
+      const jiaoxi = response.data.records?.Locations?.[0]?.Location?.find(l => l.LocationName === '礁溪鄉');
+      if (jiaoxi) {
+        const temp = jiaoxi.WeatherElement?.find(e => e.ElementName === '溫度');
+        debugText += `溫度筆數: ${temp?.Time?.length || 0}\n`;
         
-        if (locations.length > 0) {
-          const firstLoc = locations[0];
-          if (firstLoc.Location) {
-            debugText += `Location 長度: ${firstLoc.Location.length}\n`;
-            
-            const jiaoxi = firstLoc.Location.find(l => l.LocationName === '礁溪鄉');
-            if (jiaoxi) {
-              debugText += `✅ 找到礁溪鄉！\n`;
-              
-              if (jiaoxi.WeatherElement) {
-                const elements = jiaoxi.WeatherElement.map(e => e.ElementName).join(', ');
-                debugText += `天氣元素: ${elements}\n`;
-                
-                const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
-                if (temp && temp.Time) {
-                  debugText += `溫度筆數: ${temp.Time.length}\n`;
-                }
-              }
-            }
-          }
-        }
+        const pop = jiaoxi.WeatherElement?.find(e => e.ElementName === '3小時降雨機率');
+        debugText += `降雨筆數: ${pop?.Time?.length || 0}\n`;
       }
+      
     } catch (e) {
       debugText += `❌ 失敗: ${e.message}\n`;
     }
@@ -136,7 +119,6 @@ function getElementValue(elementValue) {
       if (item.ProbabilityOfPrecipitation !== undefined) return item.ProbabilityOfPrecipitation;
       if (item.Value !== undefined) return item.Value;
       if (item.value !== undefined) return item.value;
-      if (item.數值 !== undefined) return item.數值;
       if (typeof item === 'string' || typeof item === 'number') return item;
     }
   }
@@ -146,7 +128,6 @@ function getElementValue(elementValue) {
     if (elementValue.ProbabilityOfPrecipitation !== undefined) return elementValue.ProbabilityOfPrecipitation;
     if (elementValue.Value !== undefined) return elementValue.Value;
     if (elementValue.value !== undefined) return elementValue.value;
-    if (elementValue.數值 !== undefined) return elementValue.數值;
   }
   
   if (typeof elementValue === 'string' || typeof elementValue === 'number') {
@@ -235,9 +216,9 @@ async function getHourlyTemperature() {
     
     console.log(`當前時間: ${currentHour}:${currentMinute}, 日期: ${currentDate}`);
     
-    // 決定起始時間（0-23小時制）
+    // 決定起始時間
     let startHour = currentHour;
-    let startDay = 0; // 0=今天, 1=明天
+    let startDay = 0;
     
     if (currentMinute < 30) {
       startHour = currentHour + 1;
@@ -245,7 +226,6 @@ async function getHourlyTemperature() {
       startHour = currentHour + 2;
     }
     
-    // 處理跨日
     if (startHour >= 24) {
       startHour -= 24;
       startDay = 1;
@@ -266,7 +246,6 @@ async function getHourlyTemperature() {
           const itemHour = parseInt(timeStr.substring(11, 13));
           const itemDate = timeStr.substring(5, 10).replace('-', '/');
           
-          // 計算日期差異
           const [itemMonth, itemDay] = itemDate.split('/').map(Number);
           const [currMonth, currDay] = currentDate.split('/').map(Number);
           
@@ -275,16 +254,11 @@ async function getHourlyTemperature() {
           
           const dayDiff = Math.floor((itemDateObj - currDateObj) / (24 * 60 * 60 * 1000));
           
-          console.log(`檢查: ${itemDate} ${itemHour}:00, dayDiff=${dayDiff}`);
-          
-          // 判斷是否為未來時段
           let isFuture = false;
           
           if (dayDiff === startDay) {
-            // 同一天（今天或明天）
             isFuture = itemHour >= startHour;
           } else if (dayDiff > startDay) {
-            // 更未來的日子
             isFuture = true;
           }
           
@@ -301,8 +275,6 @@ async function getHourlyTemperature() {
             }
             
             const temp = getElementValue(tempItem.ElementValue);
-            
-            console.log(`✓ 選中: ${startTimeStr}-${endTimeStr}${dayMark}, 溫度=${temp}`);
             
             if (temp) {
               let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark} ${temp}°`;
@@ -419,6 +391,10 @@ async function get7DayForecast() {
       if (weather) dayText += ` ${weather}`;
       if (minTemp !== null && maxTemp !== null) {
         dayText += ` ${minTemp}°~${maxTemp}°`;
+      } else if (minTemp !== null) {
+        dayText += ` ${minTemp}°`;
+      } else if (maxTemp !== null) {
+        dayText += ` ${maxTemp}°`;
       }
       if (maxPop !== null) {
         dayText += ` ☔${maxPop}%`;
