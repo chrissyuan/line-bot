@@ -35,6 +35,15 @@ async function handleEvent(event) {
 
   const userMessage = event.message.text;
   
+  // 新增一個除錯指令
+  if (userMessage === '!debug') {
+    const debugInfo = await getDebugInfo();
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: debugInfo
+    });
+  }
+  
   if (userMessage.includes('天氣') || userMessage.includes('宜蘭')) {
     try {
       const weatherData = await getCurrentWeather();
@@ -57,8 +66,101 @@ async function handleEvent(event) {
   
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入「天氣」或「宜蘭」來查詢天氣資訊'
+    text: '請輸入「天氣」或「宜蘭」來查詢天氣資訊（輸入 !debug 查看API原始資料）'
   });
+}
+
+// 取得除錯資訊
+async function getDebugInfo() {
+  try {
+    let debugText = "🔍 API 除錯資訊\n\n";
+    
+    // 測試 F-D0047-071
+    debugText += "📡 F-D0047-071 (宜蘭縣):\n";
+    try {
+      const response = await axios.get(
+        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
+        `Authorization=${CWA_API_KEY}&` +
+        `locationName=宜蘭縣`
+      );
+      
+      debugText += `狀態: ${response.data.success}\n`;
+      
+      // 檢查資料結構
+      if (response.data.records) {
+        debugText += `有 records 欄位\n`;
+        
+        if (response.data.records.Locations) {
+          debugText += `有 Locations 欄位\n`;
+          const locations = response.data.records.Locations;
+          debugText += `Locations 長度: ${locations.length}\n`;
+          
+          if (locations.length > 0) {
+            const firstLoc = locations[0];
+            debugText += `第一個 Locations 鍵: ${Object.keys(firstLoc).join(', ')}\n`;
+            
+            if (firstLoc.Location) {
+              debugText += `Location 長度: ${firstLoc.Location.length}\n`;
+              
+              if (firstLoc.Location.length > 0) {
+                const yilan = firstLoc.Location.find(l => l.LocationName === '宜蘭縣');
+                if (yilan) {
+                  debugText += `找到宜蘭縣\n`;
+                  
+                  if (yilan.WeatherElement) {
+                    debugText += `WeatherElement 數量: ${yilan.WeatherElement.length}\n`;
+                    
+                    // 顯示所有可用的元素名稱
+                    const elementNames = yilan.WeatherElement.map(e => e.ElementName).join(', ');
+                    debugText += `元素: ${elementNames}\n`;
+                    
+                    // 特別查看 PoP
+                    const pop = yilan.WeatherElement.find(e => e.ElementName === 'PoP');
+                    if (pop) {
+                      debugText += `✅ 找到 PoP 元素\n`;
+                      debugText += `PoP 時間資料筆數: ${pop.Time?.length || 0}\n`;
+                      
+                      // 顯示前3筆降雨機率
+                      if (pop.Time && pop.Time.length > 0) {
+                        debugText += `前3筆降雨機率:\n`;
+                        for (let i = 0; i < Math.min(3, pop.Time.length); i++) {
+                          const t = pop.Time[i];
+                          const time = t.StartTime?.substring(5, 16) || '未知時間';
+                          const value = t.ElementValue?.[0]?.Value || '無值';
+                          debugText += `  ${time}: ${value}%\n`;
+                        }
+                      }
+                    } else {
+                      debugText += `❌ 找不到 PoP 元素\n`;
+                    }
+                  }
+                } else {
+                  debugText += `❌ 找不到宜蘭縣\n`;
+                }
+              }
+            }
+          }
+        } else {
+          debugText += `沒有 Locations 欄位，實際欄位: ${Object.keys(response.data.records).join(', ')}\n`;
+        }
+      } else {
+        debugText += `沒有 records 欄位，實際頂層欄位: ${Object.keys(response.data).join(', ')}\n`;
+      }
+      
+    } catch (e) {
+      debugText += `❌ API 呼叫失敗: ${e.message}\n`;
+    }
+    
+    // 限制訊息長度
+    if (debugText.length > 4900) {
+      debugText = debugText.substring(0, 4900) + '...';
+    }
+    
+    return debugText;
+    
+  } catch (error) {
+    return `除錯失敗: ${error.message}`;
+  }
 }
 
 // 計算溫度平均值
@@ -87,54 +189,48 @@ function getFutureDates(days = 5) {
 }
 
 // 從 F-D0047-071 API 獲取2小時間隔的預報（宜蘭縣）
-async function getAccurateHourlyForecast() {
+async function getHourlyForecast() {
   try {
-    console.log('開始取得精確小時預報（F-D0047-071）...');
+    console.log('開始取得小時預報（F-D0047-071）...');
     
-    // 使用 F-D0047-071 但指定要取得更短間隔的資料
     const response = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-071?` +
       `Authorization=${CWA_API_KEY}&` +
       `locationName=宜蘭縣&` +
-      `elementName=PoP` // 只取降雨機率
+      `elementName=Wx,MinT,MaxT,PoP`
     );
 
-    console.log('精確小時預報 API 回應狀態:', response.data.success);
+    console.log('小時預報 API 回應狀態:', response.data.success);
     
     if (!response.data.records || !response.data.records.Locations) {
       console.log('找不到 records.Locations');
-      return null;
+      return { temp: null, pop: null };
     }
     
     const locationsList = response.data.records.Locations;
     if (!locationsList || locationsList.length === 0) {
-      return null;
+      return { temp: null, pop: null };
     }
     
     const firstLocations = locationsList[0];
     const locationArray = firstLocations.Location;
     if (!locationArray || locationArray.length === 0) {
-      return null;
+      return { temp: null, pop: null };
     }
     
     const yilanData = locationArray.find(loc => loc.LocationName === '宜蘭縣');
     if (!yilanData) {
-      return null;
+      return { temp: null, pop: null };
     }
     
     const weatherElements = yilanData.WeatherElement || [];
+    
+    const wxData = weatherElements.find(e => e.ElementName === 'Wx')?.Time || [];
+    const minTData = weatherElements.find(e => e.ElementName === 'MinT')?.Time || [];
+    const maxTData = weatherElements.find(e => e.ElementName === 'MaxT')?.Time || [];
     const popData = weatherElements.find(e => e.ElementName === 'PoP')?.Time || [];
     
-    console.log('找到降雨機率資料筆數:', popData.length);
-    
-    // 顯示前10筆降雨機率資料
-    if (popData.length > 0) {
-      console.log('前10筆降雨機率資料:');
-      for (let i = 0; i < Math.min(10, popData.length); i++) {
-        const item = popData[i];
-        console.log(`  ${item.StartTime?.substring(5, 16)}: ${item.ElementValue?.[0]?.Value}%`);
-      }
-    }
+    console.log(`找到資料 - 天氣:${wxData.length}, 低溫:${minTData.length}, 高溫:${maxTData.length}, 降雨:${popData.length}`);
     
     // 獲取當前時間
     const now = new Date();
@@ -151,50 +247,75 @@ async function getAccurateHourlyForecast() {
       startHour = currentHour + 2;
     }
     
+    let tempText = "";
     let popText = "";
     let foundCount = 0;
     
-    for (let i = 0; i < popData.length && foundCount < 5; i++) {
-      const item = popData[i];
-      const startTime = item.StartTime || item.DataTime;
-      
-      if (startTime) {
-        const itemHour = parseInt(startTime.substring(11, 13));
-        const itemDate = startTime.substring(5, 10).replace('-', '/');
+    // 使用溫度資料（如果有的話）
+    if (minTData.length > 0 && maxTData.length > 0) {
+      for (let i = 0; i < minTData.length && foundCount < 5; i++) {
+        const minItem = minTData[i];
+        const maxItem = maxTData[i];
+        const popItem = popData[i];
         
-        const isToday = itemDate === currentDate;
-        const isFuture = (isToday && itemHour >= startHour) || 
-                        (!isToday && foundCount > 0);
+        const startTime = minItem.StartTime || minItem.DataTime;
         
-        if (isFuture) {
-          const endHour = (itemHour + 2) % 24;
-          const startTimeStr = `${String(itemHour).padStart(2, '0')}:00`;
-          const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
+        if (startTime) {
+          const itemHour = parseInt(startTime.substring(11, 13));
+          const itemDate = startTime.substring(5, 10).replace('-', '/');
           
-          let dayMark = "";
-          if (!isToday) {
-            dayMark = " (明日)";
-          } else if (endHour < itemHour) {
-            dayMark = " (跨日)";
+          const isToday = itemDate === currentDate;
+          const isFuture = (isToday && itemHour >= startHour) || 
+                          (!isToday && foundCount > 0);
+          
+          if (isFuture) {
+            const endHour = (itemHour + 2) % 24;
+            const startTimeStr = `${String(itemHour).padStart(2, '0')}:00`;
+            const endTimeStr = `${String(endHour).padStart(2, '0')}:00`;
+            
+            let dayMark = "";
+            if (!isToday) {
+              dayMark = " (明日)";
+            } else if (endHour < itemHour) {
+              dayMark = " (跨日)";
+            }
+            
+            const minTemp = minItem.ElementValue?.[0]?.Value;
+            const maxTemp = maxItem.ElementValue?.[0]?.Value;
+            const pop = popItem?.ElementValue?.[0]?.Value;
+            
+            let avgTemp = null;
+            if (minTemp && maxTemp) {
+              avgTemp = calculateAverageTemp(minTemp, maxTemp);
+            }
+            
+            // 溫度文字
+            let tempSlot = `${startTimeStr}-${endTimeStr}${dayMark}`;
+            if (avgTemp !== null) {
+              tempSlot += ` ${avgTemp}°`;
+            }
+            tempText += tempSlot + '\n';
+            
+            // 降雨文字
+            if (pop && pop !== '--') {
+              let popSlot = `${startTimeStr}-${endTimeStr}${dayMark} ☔${pop}%`;
+              popText += popSlot + '\n';
+            }
+            
+            foundCount++;
           }
-          
-          const pop = item.ElementValue?.[0]?.Value;
-          
-          let slotText = `${startTimeStr}-${endTimeStr}${dayMark}`;
-          if (pop) {
-            slotText += ` ☔${pop}%`;
-          }
-          popText += slotText + '\n';
-          foundCount++;
         }
       }
     }
     
-    return popText;
+    return {
+      temp: tempText || null,
+      pop: popText || null
+    };
 
   } catch (error) {
-    console.log("精確小時預報錯誤：", error.message);
-    return null;
+    console.log("小時預報錯誤：", error.message);
+    return { temp: null, pop: null };
   }
 }
 
@@ -307,87 +428,6 @@ async function get7DayForecast() {
   }
 }
 
-async function getCurrentWeather() {
-  try {
-    // ===== 36小時預報（用於目前天氣和溫度）=====
-    const res36 = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
-    );
-
-    const location36 = res36.data.records.location[0];
-    const elements36 = location36.weatherElement;
-
-    const wx = elements36.find(e => e.elementName === "Wx").time;
-    const minT = elements36.find(e => e.elementName === "MinT").time;
-    const maxT = elements36.find(e => e.elementName === "MaxT").time;
-    
-    const currentWeather = wx[0].parameter.parameterName;
-    const currentMinTemp = parseFloat(minT[0].parameter.parameterName);
-    const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
-    
-    const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
-    
-    // ===== 嘗試取得精確的小時降雨機率 =====
-    const accuratePopForecast = await getAccurateHourlyForecast();
-
-    // ===== 從 API 獲取未來5天預報 =====
-    const weekForecast = await get7DayForecast();
-
-    // 獲取今天的日期顯示
-    const today = new Date();
-    const twTime = new Date(today.getTime() + (8 * 60 * 60 * 1000));
-    const todayStr = `${twTime.getFullYear()}/${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
-    const currentTimeStr = `${String(twTime.getHours()).padStart(2, '0')}:${String(twTime.getMinutes()).padStart(2, '0')}`;
-
-    let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
-    result += `━━━━━━━━━━━━\n\n`;
-    
-    result += `🌡 目前溫度 ${currentAvgTemp}°\n`;
-    result += `☁️ ${currentWeather}\n`;
-    
-    if (accuratePopForecast) {
-      result += `\n🕒 未來10小時降雨機率\n`;
-      result += accuratePopForecast;
-    } else {
-      // 如果無法取得精確降雨，至少顯示溫度
-      result += `\n🕒 未來10小時溫度\n`;
-      
-      // 用36小時預報的溫度
-      const timeSlots = generate2HourSlots();
-      for (let i = 0; i < timeSlots.length; i++) {
-        const slot = timeSlots[i];
-        const forecastIndex = Math.min(i, wx.length - 1);
-        const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
-        const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
-        
-        let avgTemp = null;
-        if (!isNaN(minTemp) && !isNaN(maxTemp)) {
-          avgTemp = Math.round(((minTemp + maxTemp) / 2) * 10) / 10;
-        }
-        
-        let slotText = `${slot.start}-${slot.end}${slot.dayMark}`;
-        if (avgTemp !== null) {
-          slotText += ` ${avgTemp}°`;
-        }
-        result += slotText + '\n';
-      }
-    }
-    
-    if (weekForecast) {
-      result += `\n📅 未來5天\n`;
-      result += weekForecast;
-    }
-    
-    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署`;
-
-    return result;
-
-  } catch (error) {
-    console.log("錯誤內容：", error.response?.data || error.message);
-    return "⚠️ 無法取得天氣資料，請稍後再試";
-  }
-}
-
 // 生成2小時間隔的時間區間（備用方案）
 function generate2HourSlots() {
   const slots = [];
@@ -428,10 +468,91 @@ function generate2HourSlots() {
   return slots;
 }
 
-// 測試用根路由
-app.get('/', (req, res) => {
-  res.send('Line Bot 天氣機器人已啟動！請在Line中輸入「天氣」或「宜蘭」查詢。');
-});
+async function getCurrentWeather() {
+  try {
+    // ===== 36小時預報（用於目前天氣）=====
+    const res36 = await axios.get(
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
+    );
+
+    const location36 = res36.data.records.location[0];
+    const elements36 = location36.weatherElement;
+
+    const wx = elements36.find(e => e.elementName === "Wx").time;
+    const minT = elements36.find(e => e.elementName === "MinT").time;
+    const maxT = elements36.find(e => e.elementName === "MaxT").time;
+    
+    const currentWeather = wx[0].parameter.parameterName;
+    const currentMinTemp = parseFloat(minT[0].parameter.parameterName);
+    const currentMaxTemp = parseFloat(maxT[0].parameter.parameterName);
+    
+    const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
+    
+    // ===== 從 F-D0047-071 獲取小時預報 =====
+    const hourly = await getHourlyForecast();
+
+    // ===== 從 API 獲取未來5天預報 =====
+    const weekForecast = await get7DayForecast();
+
+    // 獲取今天的日期顯示
+    const today = new Date();
+    const twTime = new Date(today.getTime() + (8 * 60 * 60 * 1000));
+    const todayStr = `${twTime.getFullYear()}/${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
+    const currentTimeStr = `${String(twTime.getHours()).padStart(2, '0')}:${String(twTime.getMinutes()).padStart(2, '0')}`;
+
+    let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
+    result += `━━━━━━━━━━━━\n\n`;
+    
+    result += `🌡 目前溫度 ${currentAvgTemp}°\n`;
+    result += `☁️ ${currentWeather}\n`;
+    
+    // 優先顯示降雨機率
+    if (hourly.pop) {
+      result += `\n🕒 未來10小時降雨機率\n`;
+      result += hourly.pop;
+    } 
+    // 如果沒有降雨機率，顯示溫度
+    else if (hourly.temp) {
+      result += `\n🕒 未來10小時溫度\n`;
+      result += hourly.temp;
+    }
+    // 最後的備用方案
+    else {
+      result += `\n🕒 未來10小時溫度（36hr預報）\n`;
+      const timeSlots = generate2HourSlots();
+      for (let i = 0; i < timeSlots.length; i++) {
+        const slot = timeSlots[i];
+        const forecastIndex = Math.min(i, wx.length - 1);
+        const minTemp = parseFloat(minT[forecastIndex]?.parameter?.parameterName);
+        const maxTemp = parseFloat(maxT[forecastIndex]?.parameter?.parameterName);
+        
+        let avgTemp = null;
+        if (!isNaN(minTemp) && !isNaN(maxTemp)) {
+          avgTemp = Math.round(((minTemp + maxTemp) / 2) * 10) / 10;
+        }
+        
+        let slotText = `${slot.start}-${slot.end}${slot.dayMark}`;
+        if (avgTemp !== null) {
+          slotText += ` ${avgTemp}°`;
+        }
+        result += slotText + '\n';
+      }
+    }
+    
+    if (weekForecast) {
+      result += `\n📅 未來5天\n`;
+      result += weekForecast;
+    }
+    
+    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署`;
+
+    return result;
+
+  } catch (error) {
+    console.log("錯誤內容：", error.response?.data || error.message);
+    return "⚠️ 無法取得天氣資料，請稍後再試";
+  }
+}
 
 // 啟動伺服器
 app.listen(PORT, () => {
