@@ -1,17 +1,15 @@
 const express = require("express");
-const line = require("@line/bot-sdk");
 const axios = require("axios");
+const crypto = require("crypto");
 
 const app = express();
+app.use(express.json());
 
-const config = {
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.LINE_CHANNEL_SECRET
-};
-
+const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET;
 const CWA_API_KEY = process.env.CWA_API_KEY;
 
-// ===== 防止程式崩潰 =====
+// ===== 防止崩潰 =====
 process.on("uncaughtException", err => {
   console.error("未捕捉錯誤:", err);
 });
@@ -20,10 +18,22 @@ process.on("unhandledRejection", err => {
   console.error("Promise錯誤:", err);
 });
 
+// ===== LINE 簽章驗證 =====
+function verifyLineSignature(req) {
+  const signature = req.headers["x-line-signature"];
+  const body = JSON.stringify(req.body);
+
+  const hash = crypto
+    .createHmac("sha256", LINE_CHANNEL_SECRET)
+    .update(body)
+    .digest("base64");
+
+  return hash === signature;
+}
+
 // ===== 取得天氣 =====
 async function getWeather() {
   try {
-
     const res = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
@@ -48,7 +58,6 @@ async function getWeather() {
 
       const nextTime = new Date(currentTime.getTime() + 2 * 60 * 60 * 1000);
 
-      // 找出目前時間落在哪個 API 區間
       const index = wx.findIndex(t => {
         const start = new Date(t.startTime);
         const end = new Date(t.endTime);
@@ -65,9 +74,9 @@ async function getWeather() {
         const endStr = nextTime.toTimeString().substring(0,5);
 
         output += `${startStr}-${endStr}\n`;
-        output += `天氣：${weather}\n`;
-        output += `溫度：${minTemp}°C ~ ${maxTemp}°C\n`;
-        output += `降雨率：${rain}%\n\n`;
+        output += `${weather}\n`;
+        output += `${minTemp}°C ~ ${maxTemp}°C\n`;
+        output += `降雨率 ${rain}%\n\n`;
       }
 
       currentTime = nextTime;
@@ -86,6 +95,11 @@ async function getWeather() {
 // ===== LINE Webhook =====
 app.post("/webhook", async (req, res) => {
   try {
+
+    if (!verifyLineSignature(req)) {
+      return res.status(403).send("Invalid signature");
+    }
+
     const events = req.body.events;
 
     for (let event of events) {
@@ -104,7 +118,7 @@ app.post("/webhook", async (req, res) => {
           {
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${CHANNEL_ACCESS_TOKEN}`
+              "Authorization": `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`
             }
           }
         );
@@ -119,7 +133,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// ===== 測試首頁 =====
+// ===== 首頁測試 =====
 app.get("/", (req, res) => {
   res.send("LINE 天氣機器人運行中");
 });
