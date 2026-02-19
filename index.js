@@ -1,11 +1,15 @@
 const express = require("express");
+const line = require("@line/bot-sdk");
 const axios = require("axios");
 
 const app = express();
-app.use(express.json());
+
+const config = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET
+};
 
 const CWA_API_KEY = process.env.CWA_API_KEY;
-const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 
 // ===== 防止程式崩潰 =====
 process.on("uncaughtException", err => {
