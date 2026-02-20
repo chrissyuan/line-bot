@@ -167,16 +167,17 @@ function getTimeString(timeObj) {
   return timeObj.DataTime || timeObj.dataTime || timeObj.StartTime || timeObj.startTime || null;
 }
 
-// 獲取未來3天的日期（格式：MM/DD）
-function getFutureDates(days = 3) {
+// 獲取今天 + 未來3天的日期（格式：MM/DD）
+function getDates() {
   const dates = [];
   const today = new Date();
   const twTime = new Date(today.getTime() + (8 * 60 * 60 * 1000));
   
-  for (let i = 1; i <= days; i++) {
-    const futureDate = new Date(twTime.getTime() + (i * 24 * 60 * 60 * 1000));
-    const month = String(futureDate.getMonth() + 1).padStart(2, '0');
-    const day = String(futureDate.getDate()).padStart(2, '0');
+  // 加入今天 (i=0)
+  for (let i = 0; i <= 3; i++) {
+    const targetDate = new Date(twTime.getTime() + (i * 24 * 60 * 60 * 1000));
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
     dates.push(`${month}/${day}`);
   }
   
@@ -322,8 +323,8 @@ async function getHourlyTemperature() {
   }
 }
 
-// 從 F-D0047-001 API 獲取未來3天預報（礁溪鄉）
-async function get3DayForecast() {
+// 從 F-D0047-001 API 獲取今天 + 未來3天預報（礁溪鄉）
+async function getDailyForecast() {
   try {
     const response = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
@@ -365,16 +366,23 @@ async function get3DayForecast() {
     
     console.log('可用溫度日期:', availableDates.sort().join(', '));
     
-    // 只取未來3天
-    const futureDates = getFutureDates(3);
+    // 取得今天 + 未來3天
+    const dates = getDates();
     
-    let weekForecast = [];
+    let forecast = [];
     
-    for (let i = 0; i < futureDates.length; i++) {
-      const targetDate = futureDates[i];
+    for (let i = 0; i < dates.length; i++) {
+      const targetDate = dates[i];
       
-      // 找當天的天氣現象
+      // 找當天的天氣現象（取中午左右的資料，較有代表性）
       const wx = wxData.find(item => {
+        const timeStr = getTimeString(item);
+        if (!timeStr) return false;
+        const itemDate = timeStr.substring(5, 10).replace('-', '/');
+        const itemHour = parseInt(timeStr.substring(11, 13));
+        return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
+      }) || wxData.find(item => {
+        // 如果找不到中午的，就取第一筆
         const timeStr = getTimeString(item);
         if (!timeStr) return false;
         const itemDate = timeStr.substring(5, 10).replace('-', '/');
@@ -426,7 +434,12 @@ async function get3DayForecast() {
       
       const maxPop = pops.length > 0 ? Math.max(...pops) : null;
       
+      // 今天加上「今日」標記
       let dayText = targetDate;
+      if (i === 0) {
+        dayText += " (今日)";
+      }
+      
       if (weather) dayText += ` ${weather}`;
       
       // 顯示最低溫~最高溫
@@ -445,13 +458,13 @@ async function get3DayForecast() {
       if (maxPop !== null) {
         dayText += ` ☔${maxPop}%`;
       }
-      weekForecast.push(dayText);
+      forecast.push(dayText);
     }
     
-    return weekForecast.join('\n');
+    return forecast.join('\n');
 
   } catch (error) {
-    console.log("3天預報錯誤：", error.message);
+    console.log("每日預報錯誤：", error.message);
     return "";
   }
 }
@@ -527,8 +540,8 @@ async function getCurrentWeather() {
     // ===== 從 F-D0047-001 獲取小時溫度預報（礁溪鄉）=====
     const hourlyTemp = await getHourlyTemperature();
 
-    // ===== 從 F-D0047-001 獲取未來3天預報（礁溪鄉）=====
-    const weekForecast = await get3DayForecast();
+    // ===== 從 F-D0047-001 獲取今日 + 未來3天預報（礁溪鄉）=====
+    const dailyForecast = await getDailyForecast();
 
     // 獲取今天的日期顯示
     const today = new Date();
@@ -570,9 +583,9 @@ async function getCurrentWeather() {
       }
     }
     
-    if (weekForecast) {
-      result += `\n📅 未來3天\n`;
-      result += weekForecast;
+    if (dailyForecast) {
+      result += `\n📅 今日+未來3天\n`;
+      result += dailyForecast;
     }
     
     result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-001)`;
