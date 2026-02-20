@@ -74,12 +74,12 @@ async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
     
-    debugText += `📡 F-D0047-093 (礁溪鄉全臺鄉鎮):\n`;
+    debugText += `📡 F-D0047-091 (宜蘭縣一週預報):\n`;
     try {
       const response = await axios.get(
-        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-093?` +
+        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
         `Authorization=${CWA_API_KEY}&` +
-        `locationName=礁溪鄉`
+        `locationName=宜蘭縣`
       );
       
       debugText += `狀態: ${response.data.success}\n`;
@@ -93,12 +93,12 @@ async function getDebugInfo() {
           if (firstLoc.Location) {
             debugText += `Location 長度: ${firstLoc.Location.length}\n`;
             
-            const jiaoxi = firstLoc.Location.find(l => l.LocationName === '礁溪鄉');
-            if (jiaoxi) {
-              debugText += `✅ 找到礁溪鄉！\n`;
+            const yilan = firstLoc.Location.find(l => l.LocationName === '宜蘭縣');
+            if (yilan) {
+              debugText += `✅ 找到宜蘭縣！\n`;
               
-              if (jiaoxi.WeatherElement) {
-                const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
+              if (yilan.WeatherElement) {
+                const temp = yilan.WeatherElement.find(e => e.ElementName === '溫度');
                 if (temp && temp.Time) {
                   debugText += `溫度筆數: ${temp.Time.length}\n`;
                   
@@ -110,16 +110,11 @@ async function getDebugInfo() {
                   debugText += `可用日期: ${dates.sort().join(', ')}\n`;
                 }
                 
-                const pop = jiaoxi.WeatherElement.find(e => e.ElementName === '3小時降雨機率');
+                const pop = yilan.WeatherElement.find(e => e.ElementName === '3小時降雨機率');
                 if (pop && pop.Time) {
                   debugText += `降雨筆數: ${pop.Time.length}\n`;
                 }
               }
-            } else {
-              debugText += `❌ 找不到礁溪鄉\n`;
-              // 顯示前幾個地點
-              const firstFew = firstLoc.Location.slice(0, 5).map(l => l.LocationName).join(', ');
-              debugText += `前5個地點: ${firstFew}\n`;
             }
           }
         }
@@ -190,15 +185,15 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 從 F-D0047-093 API 獲取2小時間隔的溫度預報（礁溪鄉）
+// 從 F-D0047-091 API 獲取2小時間隔的溫度預報（宜蘭縣）
 async function getHourlyTemperature() {
   try {
-    console.log('開始取得小時溫度預報（F-D0047-093 礁溪鄉）...');
+    console.log('開始取得小時溫度預報（F-D0047-091 宜蘭縣）...');
     
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-093?` +
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
       `Authorization=${CWA_API_KEY}&` +
-      `locationName=礁溪鄉`
+      `locationName=宜蘭縣`
     );
 
     console.log('API 回應狀態:', response.data.success);
@@ -219,15 +214,15 @@ async function getHourlyTemperature() {
       return null;
     }
     
-    const jiaoxiData = locationArray.find(l => l.LocationName === '礁溪鄉');
-    if (!jiaoxiData) {
-      console.log('找不到礁溪鄉');
+    const yilanData = locationArray.find(l => l.LocationName === '宜蘭縣');
+    if (!yilanData) {
+      console.log('找不到宜蘭縣');
       return null;
     }
     
-    console.log('使用地點:', jiaoxiData.LocationName);
+    console.log('使用地點:', yilanData.LocationName);
     
-    const weatherElements = jiaoxiData.WeatherElement || [];
+    const weatherElements = yilanData.WeatherElement || [];
     
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
     
@@ -329,13 +324,13 @@ async function getHourlyTemperature() {
   }
 }
 
-// 從 F-D0047-093 API 獲取未來5天預報（礁溪鄉）
+// 從 F-D0047-091 API 獲取未來5天預報（宜蘭縣）
 async function get7DayForecast() {
   try {
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-093?` +
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
       `Authorization=${CWA_API_KEY}&` +
-      `locationName=礁溪鄉`
+      `locationName=宜蘭縣`
     );
 
     if (!response.data.records || !response.data.records.Locations) {
@@ -353,12 +348,12 @@ async function get7DayForecast() {
       return "";
     }
     
-    const jiaoxiData = locationArray.find(l => l.LocationName === '礁溪鄉');
-    if (!jiaoxiData) {
+    const yilanData = locationArray.find(l => l.LocationName === '宜蘭縣');
+    if (!yilanData) {
       return "";
     }
     
-    const weatherElements = jiaoxiData.WeatherElement || [];
+    const weatherElements = yilanData.WeatherElement || [];
     
     const wxData = weatherElements.find(e => e.ElementName === '天氣現象')?.Time || [];
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
@@ -457,7 +452,7 @@ async function get7DayForecast() {
     return weekForecast.join('\n');
 
   } catch (error) {
-    console.log("7天預報錯誤：", error.message);
+    console.log("一週預報錯誤：", error.message);
     return "";
   }
 }
@@ -530,10 +525,10 @@ async function getCurrentWeather() {
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
-    // ===== 從 F-D0047-093 獲取小時溫度預報（礁溪鄉）=====
+    // ===== 從 F-D0047-091 獲取小時溫度預報（宜蘭縣）=====
     const hourlyTemp = await getHourlyTemperature();
 
-    // ===== 從 F-D0047-093 獲取未來5天預報（礁溪鄉）=====
+    // ===== 從 F-D0047-091 獲取未來5天預報（宜蘭縣）=====
     const weekForecast = await get7DayForecast();
 
     // 獲取今天的日期顯示
@@ -542,7 +537,7 @@ async function getCurrentWeather() {
     const todayStr = `${twTime.getFullYear()}/${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
     const currentTimeStr = `${String(twTime.getHours()).padStart(2, '0')}:${String(twTime.getMinutes()).padStart(2, '0')}`;
 
-    let result = `📍 礁溪鄉 (${todayStr} ${currentTimeStr})\n`;
+    let result = `📍 宜蘭縣 (${todayStr} ${currentTimeStr})\n`;
     result += `━━━━━━━━━━━━\n\n`;
     
     result += `🌡 目前溫度 ${currentAvgTemp}°`;
@@ -581,7 +576,7 @@ async function getCurrentWeather() {
       result += weekForecast;
     }
     
-    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-093 全臺鄉鎮)`;
+    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-091 一週預報)`;
 
     return result;
 
