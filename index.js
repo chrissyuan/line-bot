@@ -74,10 +74,10 @@ async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
     
-    debugText += `📡 F-D0047-001 (礁溪鄉):\n`;
+    debugText += `📡 F-D0047-091 (礁溪鄉一週預報):\n`;
     try {
       const response = await axios.get(
-        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
+        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
         `Authorization=${CWA_API_KEY}&` +
         `locationName=礁溪鄉`
       );
@@ -91,6 +91,13 @@ async function getDebugInfo() {
         
         const pop = jiaoxi.WeatherElement?.find(e => e.ElementName === '3小時降雨機率');
         debugText += `降雨筆數: ${pop?.Time?.length || 0}\n`;
+        
+        // 顯示可用日期
+        const dates = [...new Set(temp?.Time?.map(t => {
+          const timeStr = getTimeString(t);
+          return timeStr ? timeStr.substring(5, 10).replace('-', '/') : null;
+        }).filter(d => d))];
+        debugText += `可用日期: ${dates.sort().join(', ')}\n`;
       }
       
     } catch (e) {
@@ -159,13 +166,13 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 從 F-D0047-001 API 獲取2小時間隔的溫度預報（礁溪鄉）
+// 從 F-D0047-091 API 獲取2小時間隔的溫度預報（礁溪鄉）- 一週預報
 async function getHourlyTemperature() {
   try {
-    console.log('開始取得小時溫度預報（F-D0047-001 礁溪鄉）...');
+    console.log('開始取得小時溫度預報（F-D0047-091 礁溪鄉一週預報）...');
     
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
       `Authorization=${CWA_API_KEY}&` +
       `locationName=礁溪鄉`
     );
@@ -298,11 +305,11 @@ async function getHourlyTemperature() {
   }
 }
 
-// 從 API 獲取未來5天預報（礁溪鄉）
+// 從 F-D0047-091 API 獲取未來5天預報（礁溪鄉）- 一週預報
 async function get7DayForecast() {
   try {
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-001?` +
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
       `Authorization=${CWA_API_KEY}&` +
       `locationName=礁溪鄉`
     );
@@ -332,6 +339,14 @@ async function get7DayForecast() {
     const wxData = weatherElements.find(e => e.ElementName === '天氣現象')?.Time || [];
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
     const popData = weatherElements.find(e => e.ElementName === '3小時降雨機率')?.Time || [];
+    
+    // 除錯：顯示所有可用的日期
+    const availableDates = [...new Set(tempData.map(item => {
+      const timeStr = getTimeString(item);
+      return timeStr ? timeStr.substring(5, 10).replace('-', '/') : null;
+    }).filter(d => d))];
+    
+    console.log('可用溫度日期:', availableDates.sort().join(', '));
     
     const futureDates = getFutureDates(5);
     
@@ -364,6 +379,8 @@ async function get7DayForecast() {
         return itemDate === targetDate;
       });
       
+      console.log(`${targetDate}: 找到 ${tempItems.length} 筆溫度, ${popItems.length} 筆降雨`);
+      
       const weather = getElementValue(wx?.ElementValue) || '';
       
       // 計算最低溫和最高溫
@@ -376,6 +393,10 @@ async function get7DayForecast() {
       
       const minTemp = temps.length > 0 ? Math.min(...temps) : null;
       const maxTemp = temps.length > 0 ? Math.max(...temps) : null;
+      
+      if (temps.length > 0) {
+        console.log(`${targetDate} 溫度範圍: ${minTemp}~${maxTemp} (共${temps.length}筆)`);
+      }
       
       // 計算最高降雨機率
       const pops = popItems
@@ -478,10 +499,10 @@ async function getCurrentWeather() {
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
-    // ===== 從 F-D0047-001 獲取小時溫度預報（礁溪鄉）=====
+    // ===== 從 F-D0047-091 獲取小時溫度預報（礁溪鄉一週預報）=====
     const hourlyTemp = await getHourlyTemperature();
 
-    // ===== 從 F-D0047-001 獲取未來5天預報（礁溪鄉）=====
+    // ===== 從 F-D0047-091 獲取未來5天預報（礁溪鄉一週預報）=====
     const weekForecast = await get7DayForecast();
 
     // 獲取今天的日期顯示
@@ -529,7 +550,7 @@ async function getCurrentWeather() {
       result += weekForecast;
     }
     
-    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-001)`;
+    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-091 一週預報)`;
 
     return result;
 
