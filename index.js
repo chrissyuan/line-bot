@@ -410,13 +410,22 @@ async function get7DayForecast() {
       
       let dayText = targetDate;
       if (weather) dayText += ` ${weather}`;
+      
+      // 🔥 修改這裡：顯示最低溫~最高溫，而不是平均值
       if (minTemp !== null && maxTemp !== null) {
-        dayText += ` ${minTemp}°~${maxTemp}°`;
+        if (minTemp === maxTemp) {
+          // 如果最低溫等於最高溫，只顯示一個溫度
+          dayText += ` ${minTemp}°`;
+        } else {
+          // 顯示範圍
+          dayText += ` ${minTemp}°~${maxTemp}°`;
+        }
       } else if (minTemp !== null) {
         dayText += ` ${minTemp}°`;
       } else if (maxTemp !== null) {
         dayText += ` ${maxTemp}°`;
       }
+      
       if (maxPop !== null) {
         dayText += ` ☔${maxPop}%`;
       }
