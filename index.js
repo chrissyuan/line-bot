@@ -74,32 +74,56 @@ async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
     
-    debugText += `📡 F-D0047-091 (礁溪鄉一週預報):\n`;
+    debugText += `📡 F-D0047-093 (礁溪鄉全臺鄉鎮):\n`;
     try {
       const response = await axios.get(
-        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
+        `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-093?` +
         `Authorization=${CWA_API_KEY}&` +
         `locationName=礁溪鄉`
       );
       
       debugText += `狀態: ${response.data.success}\n`;
       
-      const jiaoxi = response.data.records?.Locations?.[0]?.Location?.find(l => l.LocationName === '礁溪鄉');
-      if (jiaoxi) {
-        const temp = jiaoxi.WeatherElement?.find(e => e.ElementName === '溫度');
-        debugText += `溫度筆數: ${temp?.Time?.length || 0}\n`;
+      if (response.data.records && response.data.records.Locations) {
+        const locations = response.data.records.Locations;
+        debugText += `Locations 長度: ${locations.length}\n`;
         
-        const pop = jiaoxi.WeatherElement?.find(e => e.ElementName === '3小時降雨機率');
-        debugText += `降雨筆數: ${pop?.Time?.length || 0}\n`;
-        
-        // 顯示可用日期
-        const dates = [...new Set(temp?.Time?.map(t => {
-          const timeStr = getTimeString(t);
-          return timeStr ? timeStr.substring(5, 10).replace('-', '/') : null;
-        }).filter(d => d))];
-        debugText += `可用日期: ${dates.sort().join(', ')}\n`;
+        if (locations.length > 0) {
+          const firstLoc = locations[0];
+          if (firstLoc.Location) {
+            debugText += `Location 長度: ${firstLoc.Location.length}\n`;
+            
+            const jiaoxi = firstLoc.Location.find(l => l.LocationName === '礁溪鄉');
+            if (jiaoxi) {
+              debugText += `✅ 找到礁溪鄉！\n`;
+              
+              if (jiaoxi.WeatherElement) {
+                const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
+                if (temp && temp.Time) {
+                  debugText += `溫度筆數: ${temp.Time.length}\n`;
+                  
+                  // 顯示可用日期
+                  const dates = [...new Set(temp.Time.map(t => {
+                    const timeStr = getTimeString(t);
+                    return timeStr ? timeStr.substring(5, 10).replace('-', '/') : null;
+                  }).filter(d => d))];
+                  debugText += `可用日期: ${dates.sort().join(', ')}\n`;
+                }
+                
+                const pop = jiaoxi.WeatherElement.find(e => e.ElementName === '3小時降雨機率');
+                if (pop && pop.Time) {
+                  debugText += `降雨筆數: ${pop.Time.length}\n`;
+                }
+              }
+            } else {
+              debugText += `❌ 找不到礁溪鄉\n`;
+              // 顯示前幾個地點
+              const firstFew = firstLoc.Location.slice(0, 5).map(l => l.LocationName).join(', ');
+              debugText += `前5個地點: ${firstFew}\n`;
+            }
+          }
+        }
       }
-      
     } catch (e) {
       debugText += `❌ 失敗: ${e.message}\n`;
     }
@@ -166,13 +190,13 @@ function getFutureDates(days = 5) {
   return dates;
 }
 
-// 從 F-D0047-091 API 獲取2小時間隔的溫度預報（礁溪鄉）- 一週預報
+// 從 F-D0047-093 API 獲取2小時間隔的溫度預報（礁溪鄉）
 async function getHourlyTemperature() {
   try {
-    console.log('開始取得小時溫度預報（F-D0047-091 礁溪鄉一週預報）...');
+    console.log('開始取得小時溫度預報（F-D0047-093 礁溪鄉）...');
     
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-093?` +
       `Authorization=${CWA_API_KEY}&` +
       `locationName=礁溪鄉`
     );
@@ -305,11 +329,11 @@ async function getHourlyTemperature() {
   }
 }
 
-// 從 F-D0047-091 API 獲取未來5天預報（礁溪鄉）- 一週預報
+// 從 F-D0047-093 API 獲取未來5天預報（礁溪鄉）
 async function get7DayForecast() {
   try {
     const response = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?` +
+      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-093?` +
       `Authorization=${CWA_API_KEY}&` +
       `locationName=礁溪鄉`
     );
@@ -411,13 +435,11 @@ async function get7DayForecast() {
       let dayText = targetDate;
       if (weather) dayText += ` ${weather}`;
       
-      // 🔥 修改這裡：顯示最低溫~最高溫，而不是平均值
+      // 顯示最低溫~最高溫
       if (minTemp !== null && maxTemp !== null) {
         if (minTemp === maxTemp) {
-          // 如果最低溫等於最高溫，只顯示一個溫度
           dayText += ` ${minTemp}°`;
         } else {
-          // 顯示範圍
           dayText += ` ${minTemp}°~${maxTemp}°`;
         }
       } else if (minTemp !== null) {
@@ -508,10 +530,10 @@ async function getCurrentWeather() {
     
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
     
-    // ===== 從 F-D0047-091 獲取小時溫度預報（礁溪鄉一週預報）=====
+    // ===== 從 F-D0047-093 獲取小時溫度預報（礁溪鄉）=====
     const hourlyTemp = await getHourlyTemperature();
 
-    // ===== 從 F-D0047-091 獲取未來5天預報（礁溪鄉一週預報）=====
+    // ===== 從 F-D0047-093 獲取未來5天預報（礁溪鄉）=====
     const weekForecast = await get7DayForecast();
 
     // 獲取今天的日期顯示
@@ -559,7 +581,7 @@ async function getCurrentWeather() {
       result += weekForecast;
     }
     
-    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-091 一週預報)`;
+    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-093 全臺鄉鎮)`;
 
     return result;
 
