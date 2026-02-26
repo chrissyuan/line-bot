@@ -61,15 +61,18 @@ async function getCurrentWeather() {
 ========================= */
 async function getThreeDays() {
   try {
-    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?Authorization=${CWA_API_KEY}&locationName=礁溪鄉`;
+    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?Authorization=${CWA_API_KEY}`;
 
     const res = await axios.get(url);
 
-    const locations = res.data.records.locations;
-    if (!locations || !locations.length) return [];
+    const allLocations = res.data.records.locations[0].location;
 
-    const location = locations[0].location[0];
-    const elements = location.weatherElement;
+    // 用 find 精準找 礁溪鄉
+    const target = allLocations.find(loc => loc.locationName === "礁溪鄉");
+
+    if (!target) return [];
+
+    const elements = target.weatherElement;
 
     const wx = elements.find(e => e.elementName === "Wx");
     const minT = elements.find(e => e.elementName === "MinT");
@@ -89,6 +92,7 @@ async function getThreeDays() {
     }
 
     return result;
+
   } catch (err) {
     console.log("三天天氣錯誤:", err.message);
     return [];
