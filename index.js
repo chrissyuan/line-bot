@@ -61,27 +61,28 @@ async function getCurrentWeather() {
 ========================= */
 async function getThreeDays() {
   try {
-    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?Authorization=${CWA_API_KEY}`;
+    const url =
+`https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?Authorization=${CWA_API_KEY}&format=JSON`;
 
     const res = await axios.get(url);
 
-    // ✅ 第一層保護
-    if (!res.data || !res.data.records || !res.data.records.locations) {
-      console.log("API 回傳異常:", res.data);
+    // ✅ 這次用大寫
+    const locations = res.data.records.Locations;
+
+    if (!locations || !locations.length) {
+      console.log("沒有 Locations");
       return [];
     }
 
-    const locations = res.data.records.locations;
+    const allLocations = locations[0].Location;
 
-    if (!locations.length || !locations[0].location) {
-      console.log("沒有 location 資料");
+    if (!allLocations) {
+      console.log("沒有 Location");
       return [];
     }
-
-    const allLocations = locations[0].location;
 
     const target = allLocations.find(
-      loc => loc.locationName === "礁溪鄉"
+      loc => loc.LocationName === "礁溪鄉"
     );
 
     if (!target) {
@@ -89,29 +90,24 @@ async function getThreeDays() {
       return [];
     }
 
-    const elements = target.weatherElement;
+    const elements = target.WeatherElement;
 
-    const wx = elements.find(e => e.elementName === "Wx");
-    const minT = elements.find(e => e.elementName === "MinT");
-    const maxT = elements.find(e => e.elementName === "MaxT");
-    const pop = elements.find(e => e.elementName === "PoP12h");
-
-    if (!wx || !minT || !maxT || !pop) {
-      console.log("天氣元素缺失");
-      return [];
-    }
+    const wx = elements.find(e => e.ElementName === "Wx");
+    const minT = elements.find(e => e.ElementName === "MinT");
+    const maxT = elements.find(e => e.ElementName === "MaxT");
+    const pop = elements.find(e => e.ElementName === "PoP12h");
 
     const result = [];
 
     for (let i = 0; i < 3; i++) {
-      if (!wx.time[i]) break;
+      if (!wx.Time[i]) break;
 
       result.push({
-        date: wx.time[i].startTime.split(" ")[0],
-        weather: wx.time[i].elementValue[0].value,
-        min: minT.time[i].elementValue[0].value,
-        max: maxT.time[i].elementValue[0].value,
-        rain: pop.time[i].elementValue[0].value
+        date: wx.Time[i].StartTime.split(" ")[0],
+        weather: wx.Time[i].ElementValue[0].Value,
+        min: minT.Time[i].ElementValue[0].Value,
+        max: maxT.Time[i].ElementValue[0].Value,
+        rain: pop.Time[i].ElementValue[0].Value
       });
     }
 
