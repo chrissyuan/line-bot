@@ -1,187 +1,170 @@
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const line = require("@line/bot-sdk");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-const CWA_API_KEY = process.env.CWA_API_KEY;
-
-const lineConfig = {
+const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.LINE_CHANNEL_SECRET
+  channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
 
-const client = new line.Client(lineConfig);
+const CWA_API_KEY = process.env.CWA_API_KEY;
+const client = new line.Client(config);
 
-app.post("/webhook", line.middleware(lineConfig), (req, res) => {
-  Promise.all(req.body.events.map(handleEvent))
-    .then(result => res.json(result))
-    .catch(err => {
-      console.error("Webhook錯誤:", err);
-      res.status(200).end();
-    });
-});
+app.use("/webhook", line.middleware(config));
 
-async function handleEvent(event) {
-  if (event.type !== "message" || event.message.type !== "text") {
-    return Promise.resolve(null);
-  }
-
-  const text = event.message.text.trim();
-
-  if (text.includes("天氣") || text.includes("宜蘭")) {
-    const weather = await getWeather();
-    return client.replyMessage(event.replyToken, {
-      type: "text",
-      text: weather
-    });
-  }
-
-  return client.replyMessage(event.replyToken, {
-    type: "text",
-    text: "請輸入「天氣」查詢礁溪天氣"
-  });
+/* =========================
+   天氣 Emoji 判斷
+========================= */
+function getWeatherEmoji(text) {
+  if (!text) return "";
+  if (text.includes("雷")) return "⛈";
+  if (text.includes("雨")) return "🌧";
+  if (text.includes("雲")) return "☁️";
+  if (text.includes("晴")) return "☀️";
+  if (text.includes("陰")) return "🌥";
+  return "🌤";
 }
 
-/* ===========================
-   主天氣功能
-=========================== */
-async function getWeather() {
+/* =========================
+   目前天氣（自動氣象站）
+   O-A0001-001
+========================= */
+async function getCurrentWeather() {
   try {
-    const now = new Date();
-    const twTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?Authorization=${CWA_API_KEY}&StationName=礁溪`;
 
-    const timeStr =
-      `${twTime.getFullYear()}/` +
-      `${String(twTime.getMonth() + 1).padStart(2, "0")}/` +
-      `${String(twTime.getDate()).padStart(2, "0")} ` +
-      `${String(twTime.getHours()).padStart(2, "0")}:` +
-      `${String(twTime.getMinutes()).padStart(2, "0")}`;
+    const res = await axios.get(url);
 
-    const current = await getCurrentObservation();
-    const radar = await checkRadarRain();
-    const forecast = await getThreeDayForecast();
-
-    return `📍 礁溪鄉
-🕒 ${timeStr}
-
-📌 目前天氣
-${current}
-
-${radar}
-
-📅 未來3天
-${forecast}
-
-資料來源：中央氣象署`;
-
-  } catch (err) {
-    console.log("主錯誤:", err.message);
-    return "⚠️ 無法取得天氣資料";
-  }
-}
-
-/* ===========================
-   即時觀測（比36hr準）
-=========================== */
-async function getCurrentObservation() {
-  try {
-    const res = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=${CWA_API_KEY}&StationName=礁溪`
-    );
+    if (!res.data.records.Station.length) {
+      return null;
+    }
 
     const station = res.data.records.Station[0];
+    const element = station.WeatherElement;
 
-    const temp = station.WeatherElement.AirTemperature;
-    const weather = station.WeatherElement.Weather;
-    const rain = station.WeatherElement.Now.Precipitation || 0;
-
-    return `${getEmoji(weather)} ${temp}°C ☔${rain}mm ${weather}`;
-
+    return {
+      temp: element.AirTemperature || "--",
+      rain: element.Now?.Precipitation || "0",
+      weather: element.Weather || "未知",
+    };
   } catch (err) {
-    console.log("觀測錯誤:", err.message);
-    return "--°C --";
+    console.log("目前天氣錯誤:", err.message);
+    return null;
   }
 }
 
-/* ===========================
-   雷達回波判斷
-=========================== */
-async function checkRadarRain() {
+/* =========================
+   未來三天
+   F-D0047-091
+========================= */
+async function getThreeDays() {
   try {
-    const res = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0059-001?Authorization=${CWA_API_KEY}`
-    );
+    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?Authorization=${CWA_API_KEY}&locationName=礁溪鄉`;
 
-    const reflectivity = res.data.records.content[0].Reflectivity;
+    const res = await axios.get(url);
 
-    if (reflectivity > 35) return "⛈️ 強降雨中";
-    if (reflectivity > 10) return "🌧️ 附近有降雨回波";
+    const locations = res.data.records.locations;
+    if (!locations || !locations.length) return [];
 
-    return "🌤️ 雷達顯示無明顯降雨";
+    const location = locations[0].location[0];
+    const elements = location.weatherElement;
 
-  } catch (err) {
-    console.log("雷達錯誤:", err.message);
-    return "";
-  }
-}
+    const wx = elements.find(e => e.elementName === "Wx");
+    const minT = elements.find(e => e.elementName === "MinT");
+    const maxT = elements.find(e => e.elementName === "MaxT");
+    const pop = elements.find(e => e.elementName === "PoP12h");
 
-/* ===========================
-   未來3天（F-D0047-091 鄉鎮級）
-=========================== */
-async function getThreeDayForecast() {
-  try {
-    const res = await axios.get(
-      `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-091?Authorization=${CWA_API_KEY}&locationName=礁溪鄉`
-    );
+    const result = [];
 
-    const location = res.data.records.locations[0].location[0];
-
-    const wx = location.weatherElement.find(e => e.elementName === "Wx").time;
-    const pop = location.weatherElement.find(e => e.elementName === "PoP12h").time;
-    const minT = location.weatherElement.find(e => e.elementName === "MinT").time;
-    const maxT = location.weatherElement.find(e => e.elementName === "MaxT").time;
-
-    let result = "";
-
-    for (let i = 0; i < 6; i += 2) {
-      const date = new Date(wx[i].startTime);
-
-      const dateStr =
-        `${String(date.getMonth() + 1).padStart(2, "0")}/` +
-        `${String(date.getDate()).padStart(2, "0")}`;
-
-      const weather = wx[i].elementValue[0].value;
-      const rain = pop[i].elementValue[0].value;
-      const minTemp = minT[i].elementValue[0].value;
-      const maxTemp = maxT[i].elementValue[0].value;
-
-      result += `${dateStr} ${getEmoji(weather)} ${minTemp}~${maxTemp}°C ☔${rain}% ${weather}\n`;
+    for (let i = 0; i < 3; i++) {
+      result.push({
+        date: wx.time[i]?.startTime?.split(" ")[0] || "",
+        weather: wx.time[i]?.elementValue[0]?.value || "",
+        min: minT.time[i]?.elementValue[0]?.value || "",
+        max: maxT.time[i]?.elementValue[0]?.value || "",
+        rain: pop.time[i]?.elementValue[0]?.value || "0",
+      });
     }
 
     return result;
-
   } catch (err) {
-    console.log("三天錯誤:", err.message);
-    return "";
+    console.log("三天天氣錯誤:", err.message);
+    return [];
   }
 }
 
-/* ===========================
-   天氣 Emoji
-=========================== */
-function getEmoji(weather) {
-  if (!weather) return "🌤️";
-  if (weather.includes("雷")) return "⛈️";
-  if (weather.includes("雨")) return "🌧️";
-  if (weather.includes("雲")) return "☁️";
-  if (weather.includes("晴")) return "☀️";
-  return "🌤️";
+/* =========================
+   組合訊息
+========================= */
+async function getWeatherMessage() {
+  const now = new Date();
+  const timeString = now.toLocaleString("zh-TW", { hour12: false });
+
+  const current = await getCurrentWeather();
+  const threeDays = await getThreeDays();
+
+  let message = `📍 礁溪鄉\n`;
+  message += `🕒 ${timeString}\n\n`;
+
+  /* 目前天氣 */
+  message += `📌 目前天氣\n`;
+
+  if (current) {
+    const emoji = getWeatherEmoji(current.weather);
+    message += `${current.temp}°C ☔${current.rain}mm ${emoji}${current.weather}\n\n`;
+  } else {
+    message += `--°C --\n\n`;
+  }
+
+  /* 未來三天 */
+  message += `📅 未來3天\n`;
+
+  if (threeDays.length) {
+    threeDays.forEach(day => {
+      const emoji = getWeatherEmoji(day.weather);
+      message += `${day.date} ${day.min}°~${day.max}° ☔${day.rain}% ${emoji}${day.weather}\n`;
+    });
+  } else {
+    message += `暫無資料\n`;
+  }
+
+  message += `\n資料來源：中央氣象署`;
+
+  return message;
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+/* =========================
+   LINE Webhook
+========================= */
+app.post("/webhook", async (req, res) => {
+  try {
+    const events = req.body.events;
+
+    for (let event of events) {
+      if (event.type === "message" && event.message.type === "text") {
+        const replyText = await getWeatherMessage();
+
+        await client.replyMessage(event.replyToken, {
+          type: "text",
+          text: replyText,
+        });
+      }
+    }
+
+    res.status(200).send("OK");
+  } catch (err) {
+    console.log("Webhook錯誤:", err.message);
+    res.status(500).end();
+  }
 });
 
-module.exports = app;
+/* =========================
+   Server
+========================= */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
