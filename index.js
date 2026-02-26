@@ -65,12 +65,29 @@ async function getThreeDays() {
 
     const res = await axios.get(url);
 
-    const allLocations = res.data.records.locations[0].location;
+    // ✅ 第一層保護
+    if (!res.data || !res.data.records || !res.data.records.locations) {
+      console.log("API 回傳異常:", res.data);
+      return [];
+    }
 
-    // 用 find 精準找 礁溪鄉
-    const target = allLocations.find(loc => loc.locationName === "礁溪鄉");
+    const locations = res.data.records.locations;
 
-    if (!target) return [];
+    if (!locations.length || !locations[0].location) {
+      console.log("沒有 location 資料");
+      return [];
+    }
+
+    const allLocations = locations[0].location;
+
+    const target = allLocations.find(
+      loc => loc.locationName === "礁溪鄉"
+    );
+
+    if (!target) {
+      console.log("找不到礁溪鄉");
+      return [];
+    }
 
     const elements = target.weatherElement;
 
@@ -79,15 +96,22 @@ async function getThreeDays() {
     const maxT = elements.find(e => e.elementName === "MaxT");
     const pop = elements.find(e => e.elementName === "PoP12h");
 
+    if (!wx || !minT || !maxT || !pop) {
+      console.log("天氣元素缺失");
+      return [];
+    }
+
     const result = [];
 
     for (let i = 0; i < 3; i++) {
+      if (!wx.time[i]) break;
+
       result.push({
-        date: wx.time[i]?.startTime?.split(" ")[0] || "",
-        weather: wx.time[i]?.elementValue[0]?.value || "",
-        min: minT.time[i]?.elementValue[0]?.value || "",
-        max: maxT.time[i]?.elementValue[0]?.value || "",
-        rain: pop.time[i]?.elementValue[0]?.value || "0",
+        date: wx.time[i].startTime.split(" ")[0],
+        weather: wx.time[i].elementValue[0].value,
+        min: minT.time[i].elementValue[0].value,
+        max: maxT.time[i].elementValue[0].value,
+        rain: pop.time[i].elementValue[0].value
       });
     }
 
