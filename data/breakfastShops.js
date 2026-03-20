@@ -1,4 +1,4 @@
-// 早餐店資料庫
+
 const breakfastShops = [
   {
     name: '鄉村堡',
