@@ -563,18 +563,43 @@ async function getDebugInfo() {
  * 處理早餐店查詢
  */
 function handleBreakfastQuery(userMessage) {
-  // 如果只輸入「早餐」，顯示所有店家
+  // 如果只輸入「早餐」，顯示所有店家列表
   if (userMessage === '早餐') {
     const allShops = breakfastData.getAllBreakfastShops();
     return breakfastData.formatBreakfastMessage(allShops);
   }
   
-  // 如果輸入「早餐 關鍵字」，進行搜尋
+  // 如果輸入「早餐 店名」，進行搜尋
   if (userMessage.includes('早餐')) {
     const keyword = userMessage.replace('早餐', '').trim();
+    
     if (keyword) {
+      // 先嘗試直接獲取店家詳細資訊
+      const shopDetail = breakfastData.getShopDetail(keyword);
+      if (shopDetail) {
+        return shopDetail;
+      }
+      
+      // 如果找不到完全匹配，進行模糊搜尋
       const results = breakfastData.searchBreakfastShops(keyword);
-      return breakfastData.formatBreakfastMessage(results);
+      
+      if (results.length === 0) {
+        return `🔍 找不到「${keyword}」相關的早餐店\n\n💡 提示：輸入「早餐」查看所有店家列表`;
+      }
+      
+      if (results.length === 1) {
+        // 只有一筆結果，直接顯示詳細資訊
+        return breakfastData.getShopDetail(results[0].name);
+      }
+      
+      // 多筆結果，顯示列表
+      let message = `🔍 找到 ${results.length} 間相關店家\n`;
+      message += `━━━━━━━━━━━━\n\n`;
+      results.forEach((shop, index) => {
+        message += `${index + 1}. ${shop.name}\n`;
+      });
+      message += `\n💡 輸入完整店名查看詳細資訊`;
+      return message;
     }
   }
   
