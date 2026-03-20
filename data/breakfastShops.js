@@ -541,14 +541,13 @@ const breakfastShops = [
   }
 ];
 
-// 根據關鍵字搜尋早餐店
+// 根據關鍵字搜尋早餐店（只搜尋店名）
 function searchBreakfastShops(keyword) {
   if (!keyword) return breakfastShops;
   
   const lowerKeyword = keyword.toLowerCase();
   return breakfastShops.filter(shop => 
-    shop.name.toLowerCase().includes(lowerKeyword) ||
-    shop.address.includes(keyword)
+    shop.name.toLowerCase().includes(lowerKeyword)
   );
 }
 
@@ -562,8 +561,26 @@ function getBreakfastShopsCount() {
   return breakfastShops.length;
 }
 
-// 格式化早餐店訊息
-function formatBreakfastMessage(shops, limit = 10) {
+// 獲取單一店家詳細資訊
+function getShopDetail(shopName) {
+  const shop = breakfastShops.find(s => 
+    s.name.includes(shopName) || 
+    shopName.includes(s.name)
+  );
+  
+  if (!shop) return null;
+  
+  let detail = `🍳 ${shop.name}\n`;
+  detail += `━━━━━━━━━━━━\n`;
+  detail += `📍 ${shop.address}\n`;
+  detail += `🕐 ${shop.hours}\n`;
+  detail += `🔗 ${shop.mapLink}`;
+  
+  return detail;
+}
+
+// 格式化早餐店訊息（簡潔版）
+function formatBreakfastMessage(shops, limit = 15) {
   if (!shops || shops.length === 0) {
     return '🍳 找不到相關的早餐店\n\n💡 提示：可以試試搜尋「早餐」來查看所有店家';
   }
@@ -573,21 +590,20 @@ function formatBreakfastMessage(shops, limit = 10) {
   
   const displayShops = shops.slice(0, limit);
   
+  // 簡潔顯示：只顯示編號和店名
   displayShops.forEach((shop, index) => {
     message += `${index + 1}. ${shop.name}\n`;
-    message += `   📍 ${shop.address}\n`;
-    message += `   🕐 ${shop.hours}\n`;
-    if (shop.phone) {
-      message += `   📞 ${shop.phone}\n`;
-    }
-    message += `   🔗 ${shop.mapLink}\n\n`;
   });
   
   if (shops.length > limit) {
-    message += `📊 還有 ${shops.length - limit} 間店家，請輸入更精確的關鍵字查詢\n`;
+    message += `\n📊 還有 ${shops.length - limit} 間店家\n`;
+    message += `💡 輸入「早餐 店名」搜尋特定店家`;
+  } else {
+    message += `\n📝 共 ${shops.length} 間早餐店\n`;
+    message += `💡 輸入「早餐 店名」查看詳細資訊`;
   }
   
-  message += `━━━━━━━━━━━━\n📝 共 ${shops.length} 間早餐店`;
+  message += `\n━━━━━━━━━━━━\n🔍 例如：早餐 柯氏蔥油餅`;
   
   return message;
 }
@@ -597,5 +613,6 @@ module.exports = {
   searchBreakfastShops,
   getAllBreakfastShops,
   getBreakfastShopsCount,
+  getShopDetail,
   formatBreakfastMessage
 };
