@@ -1,20 +1,84 @@
-[
+// 早餐店資料庫
+const breakfastShops = [
   {
-    "name": "鄉村堡",
-    "address": "礁溪路一段117號",
-    "time": "06:00–11:30",
-    "area": "礁溪"
+    name: '鄉村堡',
+    address: '262宜蘭縣礁溪鄉礁溪路一段117號',
+    hours: '06:00–11:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路一段117號'
   },
   {
-    "name": "漢林早餐店",
-    "address": "礁溪路一段79號",
-    "time": "05:30–10:30",
-    "area": "礁溪"
+    name: '漢林早餐店',
+    address: '262宜蘭縣礁溪鄉礁溪路一段79號',
+    hours: '05:30–10:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路一段79號'
   },
   {
-    "name": "酷克伊早餐",
-    "address": "礁溪路七段83號",
-    "time": "07:00-10:30",
-    "area": "礁溪"
+    name: '十六結寶珠姨早餐店',
+    address: '262宜蘭縣礁溪鄉礁溪路三段181號',
+    hours: '07:00–11:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路三段181號'
   }
-]
+  // ... 後續可以繼續新增 100 多筆資料
+];
+
+// 根據關鍵字搜尋早餐店
+function searchBreakfastShops(keyword) {
+  if (!keyword) return breakfastShops;
+  
+  const lowerKeyword = keyword.toLowerCase();
+  return breakfastShops.filter(shop => 
+    shop.name.toLowerCase().includes(lowerKeyword) ||
+    shop.address.includes(keyword)
+  );
+}
+
+// 取得所有早餐店
+function getAllBreakfastShops() {
+  return breakfastShops;
+}
+
+// 取得早餐店數量
+function getBreakfastShopsCount() {
+  return breakfastShops.length;
+}
+
+// 格式化早餐店訊息
+function formatBreakfastMessage(shops, limit = 10) {
+  if (!shops || shops.length === 0) {
+    return '🍳 找不到相關的早餐店\n\n💡 提示：可以試試搜尋「早餐」來查看所有店家';
+  }
+
+  let message = '🍳 礁溪早餐店推薦\n';
+  message += '━━━━━━━━━━━━\n\n';
+  
+  const displayShops = shops.slice(0, limit);
+  
+  displayShops.forEach((shop, index) => {
+    message += `${index + 1}. ${shop.name}\n`;
+    message += `   📍 ${shop.address}\n`;
+    message += `   🕐 ${shop.hours}\n`;
+    if (shop.phone) {
+      message += `   📞 ${shop.phone}\n`;
+    }
+    message += `   🔗 ${shop.mapLink}\n\n`;
+  });
+  
+  if (shops.length > limit) {
+    message += `📊 還有 ${shops.length - limit} 間店家，請輸入更精確的關鍵字查詢\n`;
+  }
+  
+  message += `━━━━━━━━━━━━\n📝 共 ${shops.length} 間早餐店`;
+  
+  return message;
+}
+
+module.exports = {
+  breakfastShops,
+  searchBreakfastShops,
+  getAllBreakfastShops,
+  getBreakfastShopsCount,
+  formatBreakfastMessage
+};

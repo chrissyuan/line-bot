@@ -2,6 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const line = require('@line/bot-sdk');
 
+// 導入早餐店資料
+const breakfastData = require('./data/breakfastShops');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -541,6 +544,10 @@ async function getDebugInfo() {
       debugText += `❌ 失敗: ${e.message}\n`;
     }
 
+    // 加入早餐店統計資訊
+    debugText += `\n🍳 早餐店資料庫\n`;
+    debugText += `店家總數: ${breakfastData.getBreakfastShopsCount()} 間\n`;
+
     if (debugText.length > 4900) {
       debugText = debugText.substring(0, 4900) + '...';
     }
@@ -550,6 +557,28 @@ async function getDebugInfo() {
   } catch (error) {
     return `除錯失敗: ${error.message}`;
   }
+}
+
+/**
+ * 處理早餐店查詢
+ */
+function handleBreakfastQuery(userMessage) {
+  // 如果只輸入「早餐」，顯示所有店家
+  if (userMessage === '早餐') {
+    const allShops = breakfastData.getAllBreakfastShops();
+    return breakfastData.formatBreakfastMessage(allShops);
+  }
+  
+  // 如果輸入「早餐 關鍵字」，進行搜尋
+  if (userMessage.includes('早餐')) {
+    const keyword = userMessage.replace('早餐', '').trim();
+    if (keyword) {
+      const results = breakfastData.searchBreakfastShops(keyword);
+      return breakfastData.formatBreakfastMessage(results);
+    }
+  }
+  
+  return null;
 }
 
 // ==================== Line Bot 事件處理 ====================
@@ -564,6 +593,7 @@ async function handleEvent(event) {
 
   const userMessage = event.message.text;
 
+  // 除錯指令
   if (userMessage === '!debug') {
     const debugInfo = await getDebugInfo();
     return client.replyMessage(event.replyToken, {
@@ -572,6 +602,19 @@ async function handleEvent(event) {
     });
   }
 
+  // 早餐店查詢
+  if (userMessage.includes('早餐')) {
+    const breakfastResult = handleBreakfastQuery(userMessage);
+    if (breakfastResult) {
+      const limitedText = breakfastResult.length > 5000 ? breakfastResult.substring(0, 5000) + '...' : breakfastResult;
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: limitedText
+      });
+    }
+  }
+
+  // 天氣查詢
   if (userMessage.includes('天氣') || userMessage.includes('宜蘭')) {
     try {
       const weatherData = await getCurrentWeather();
@@ -591,9 +634,10 @@ async function handleEvent(event) {
     }
   }
 
+  // 預設回應
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入「天氣」或「宜蘭」來查詢天氣資訊（輸入 !debug 查看API原始資料）'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「早餐」查詢礁溪早餐店\n🔍 「早餐 鄉村堡」搜尋特定店家\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
@@ -613,6 +657,7 @@ app.post('/webhook', line.middleware(lineConfig), (req, res) => {
 app.listen(PORT, () => {
   console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
   console.log(`Webhook URL: https://line-bot-agjf.onrender.com/webhook`);
+  console.log(`早餐店資料庫已載入，共 ${breakfastData.getBreakfastShopsCount()} 間店家`);
 });
 
 module.exports = app;
