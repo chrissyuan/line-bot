@@ -580,7 +580,7 @@ function getShopDetail(shopName) {
 }
 
 // 格式化早餐店訊息（簡潔版）
-function formatBreakfastMessage(shops, limit = 30) {
+function formatBreakfastMessage(shops, limit = 100) {
   if (!shops || shops.length === 0) {
     return '🍳 找不到相關的早餐店\n\n💡 提示：可以試試搜尋「早餐」來查看所有店家';
   }
