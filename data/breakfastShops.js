@@ -6,7 +6,7 @@ const breakfastShops = [
     hours: '06:00–11:30',
     phone: '',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路一段117號',
-    imageUrl: 'https://raw.githubusercontent.com/chrissyuan/line-bot/main/images/鄉村堡.jpg'
+    imageUrl: 'https://raw.githubusercontent.com/chrissyuan/line-bot/main/images/countryburger.jpg'
   },
   {
     name: '漢林早餐店',
