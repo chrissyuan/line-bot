@@ -5,7 +5,8 @@ const breakfastShops = [
     address: '262宜蘭縣礁溪鄉礁溪路一段117號',
     hours: '06:00–11:30',
     phone: '',
-    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路一段117號'
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路一段117號',
+    imageUrl: 'https://raw.githubusercontent.com/chrissyuan/line-bot/main/images/鄉村堡.jpg'
   },
   {
     name: '漢林早餐店',
@@ -561,7 +562,7 @@ function getBreakfastShopsCount() {
   return breakfastShops.length;
 }
 
-// 獲取單一店家詳細資訊
+// 獲取單一店家詳細資訊（純文字版）
 function getShopDetail(shopName) {
   const shop = breakfastShops.find(s => 
     s.name.includes(shopName) || 
@@ -579,8 +580,34 @@ function getShopDetail(shopName) {
   return detail;
 }
 
-// 格式化早餐店訊息（簡潔版）
-function formatBreakfastMessage(shops, limit = 100) {
+// 獲取單一店家詳細資訊（包含圖片）
+function getShopDetailWithImage(shopName) {
+  const shop = breakfastShops.find(s => 
+    s.name.includes(shopName) || 
+    shopName.includes(s.name)
+  );
+  
+  if (!shop) return null;
+  
+  // 如果有圖片網址，回傳包含圖片的物件
+  if (shop.imageUrl) {
+    return {
+      type: 'image',
+      originalContentUrl: shop.imageUrl,
+      previewImageUrl: shop.imageUrl,
+      textDetail: `🍳 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+    };
+  }
+  
+  // 沒有圖片則回傳純文字
+  return {
+    type: 'text',
+    text: `🍳 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+  };
+}
+
+// 格式化早餐店訊息（簡潔版）- 顯示30間
+function formatBreakfastMessage(shops, limit = 30) {
   if (!shops || shops.length === 0) {
     return '🍳 找不到相關的早餐店\n\n💡 提示：可以試試搜尋「早餐」來查看所有店家';
   }
@@ -614,5 +641,6 @@ module.exports = {
   getAllBreakfastShops,
   getBreakfastShopsCount,
   getShopDetail,
+  getShopDetailWithImage,
   formatBreakfastMessage
 };
