@@ -562,11 +562,15 @@ async function getDebugInfo() {
 /**
  * 處理早餐店查詢
  */
-function handleBreakfastQuery(userMessage) {
+async function handleBreakfastQuery(userMessage, replyToken) {
   // 如果只輸入「早餐」，顯示所有店家列表
   if (userMessage === '早餐') {
     const allShops = breakfastData.getAllBreakfastShops();
-    return breakfastData.formatBreakfastMessage(allShops);
+    const textMessage = breakfastData.formatBreakfastMessage(allShops);
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: textMessage
+    });
   }
   
   // 如果輸入「早餐 店名」，進行搜尋
@@ -574,22 +578,54 @@ function handleBreakfastQuery(userMessage) {
     const keyword = userMessage.replace('早餐', '').trim();
     
     if (keyword) {
-      // 先嘗試直接獲取店家詳細資訊
-      const shopDetail = breakfastData.getShopDetail(keyword);
+      // 先嘗試直接獲取店家詳細資訊（包含圖片）
+      const shopDetail = breakfastData.getShopDetailWithImage(keyword);
       if (shopDetail) {
-        return shopDetail;
+        // 如果有圖片，需要分兩次發送（圖片 + 文字）
+        if (shopDetail.type === 'image') {
+          // 先發送圖片
+          await client.replyMessage(replyToken, {
+            type: 'image',
+            originalContentUrl: shopDetail.originalContentUrl,
+            previewImageUrl: shopDetail.previewImageUrl
+          });
+          // 再發送文字詳細資訊
+          return client.pushMessage(replyToken, {
+            type: 'text',
+            text: shopDetail.textDetail
+          });
+        } else {
+          // 純文字直接回覆
+          return client.replyMessage(replyToken, shopDetail);
+        }
       }
       
       // 如果找不到完全匹配，進行模糊搜尋
       const results = breakfastData.searchBreakfastShops(keyword);
       
       if (results.length === 0) {
-        return `🔍 找不到「${keyword}」相關的早餐店\n\n💡 提示：輸入「早餐」查看所有店家列表`;
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: `🔍 找不到「${keyword}」相關的早餐店\n\n💡 提示：輸入「早餐」查看所有店家列表`
+        });
       }
       
       if (results.length === 1) {
         // 只有一筆結果，直接顯示詳細資訊
-        return breakfastData.getShopDetail(results[0].name);
+        const detail = breakfastData.getShopDetailWithImage(results[0].name);
+        if (detail.type === 'image') {
+          await client.replyMessage(replyToken, {
+            type: 'image',
+            originalContentUrl: detail.originalContentUrl,
+            previewImageUrl: detail.previewImageUrl
+          });
+          return client.pushMessage(replyToken, {
+            type: 'text',
+            text: detail.textDetail
+          });
+        } else {
+          return client.replyMessage(replyToken, detail);
+        }
       }
       
       // 多筆結果，顯示列表
@@ -599,7 +635,11 @@ function handleBreakfastQuery(userMessage) {
         message += `${index + 1}. ${shop.name}\n`;
       });
       message += `\n💡 輸入完整店名查看詳細資訊`;
-      return message;
+      
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: message
+      });
     }
   }
   
@@ -629,14 +669,8 @@ async function handleEvent(event) {
 
   // 早餐店查詢
   if (userMessage.includes('早餐')) {
-    const breakfastResult = handleBreakfastQuery(userMessage);
-    if (breakfastResult) {
-      const limitedText = breakfastResult.length > 5000 ? breakfastResult.substring(0, 5000) + '...' : breakfastResult;
-      return client.replyMessage(event.replyToken, {
-        type: 'text',
-        text: limitedText
-      });
-    }
+    await handleBreakfastQuery(userMessage, event.replyToken);
+    return; // 已經回覆，直接返回
   }
 
   // 天氣查詢
