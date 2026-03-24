@@ -578,26 +578,11 @@ async function handleBreakfastQuery(userMessage, replyToken) {
     const keyword = userMessage.replace('早餐', '').trim();
     
     if (keyword) {
-      // 先嘗試直接獲取店家詳細資訊（包含圖片）
+      // 先嘗試直接獲取店家詳細資訊
       const shopDetail = breakfastData.getShopDetailWithImage(keyword);
       if (shopDetail) {
-        // 如果有圖片，需要分兩次發送（圖片 + 文字）
-        if (shopDetail.type === 'image') {
-          // 先發送圖片
-          await client.replyMessage(replyToken, {
-            type: 'image',
-            originalContentUrl: shopDetail.originalContentUrl,
-            previewImageUrl: shopDetail.previewImageUrl
-          });
-          // 再發送文字詳細資訊
-          return client.pushMessage(replyToken, {
-            type: 'text',
-            text: shopDetail.textDetail
-          });
-        } else {
-          // 純文字直接回覆
-          return client.replyMessage(replyToken, shopDetail);
-        }
+        // 直接回覆（可能是純文字或 Flex Message）
+        return client.replyMessage(replyToken, shopDetail);
       }
       
       // 如果找不到完全匹配，進行模糊搜尋
@@ -613,19 +598,7 @@ async function handleBreakfastQuery(userMessage, replyToken) {
       if (results.length === 1) {
         // 只有一筆結果，直接顯示詳細資訊
         const detail = breakfastData.getShopDetailWithImage(results[0].name);
-        if (detail.type === 'image') {
-          await client.replyMessage(replyToken, {
-            type: 'image',
-            originalContentUrl: detail.originalContentUrl,
-            previewImageUrl: detail.previewImageUrl
-          });
-          return client.pushMessage(replyToken, {
-            type: 'text',
-            text: detail.textDetail
-          });
-        } else {
-          return client.replyMessage(replyToken, detail);
-        }
+        return client.replyMessage(replyToken, detail);
       }
       
       // 多筆結果，顯示列表
