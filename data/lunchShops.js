@@ -169,7 +169,7 @@ const lunchShops = [
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路59號'
   },
   {
-    name: '陽光田園（礁溪店）',
+    name: '陽光田園(礁溪店)',
     address: '262宜蘭縣礁溪鄉仁愛路158號',
     hours: '11:00–14:00、16:30–20:30',
     phone: '',
