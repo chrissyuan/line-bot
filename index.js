@@ -574,23 +574,11 @@ async function handleBreakfastQuery(userMessage, replyToken) {
   // 如果只輸入「早餐」，顯示所有店家列表
   if (userMessage === '早餐') {
     const allShops = breakfastData.getAllBreakfastShops();
-    
-    let message = "🍳 礁溪早餐店列表\n";
-message += "━━━━━━━━━━━━\n\n";
-
-allShops.forEach((shop, index) => {
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name + ' ' + shop.address)}`;
-
-  message += `${index + 1}. ${shop.name}\n`;
-  message += `📍 ${shop.address}\n`;
-  message += `⏰ ${shop.time}\n`;
-  message += `🗺️ ${mapLink}\n\n`;
-});
-
-return client.replyMessage(replyToken, {
-  type: 'text',
-  text: message
-});
+    const textMessage = breakfastData.formatBreakfastMessage(allShops);
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: textMessage
+    });
   }
   
   // 如果輸入「早餐 店名」，進行搜尋
@@ -624,13 +612,9 @@ return client.replyMessage(replyToken, {
       // 多筆結果，顯示列表
       let message = `🔍 找到 ${results.length} 間相關店家\n`;
       message += `━━━━━━━━━━━━\n\n`;
-     results.forEach((shop, index) => {
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name + ' ' + shop.address)}`;
-
-  message += `${index + 1}. ${shop.name}\n`;
-  message += `📍 ${shop.address}\n`;
-  message += `🗺️ ${mapLink}\n\n`;
-});
+      results.forEach((shop, index) => {
+        message += `${index + 1}. ${shop.name}\n`;
+      });
       message += `\n💡 輸入完整店名查看詳細資訊`;
       
       return client.replyMessage(replyToken, {
@@ -650,34 +634,11 @@ async function handleLunchQuery(userMessage, replyToken) {
   // 如果只輸入「午餐」，顯示所有店家列表
   if (userMessage === '午餐') {
     const allShops = lunchData.getAllLunchShops();
-   
-    let message = "🍱 礁溪午餐店列表\n";
-message += "━━━━━━━━━━━━\n\n";
-
-// ✅ 只取前10筆（超重要）
-allShops.slice(0, 10).forEach((shop, index) => {
-
-  const name = shop.name || "未命名";
-  const address = shop.address || "未提供";
-  const time = shop.time || "未提供";
-
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`;
-
-  message += `${index + 1}. ${name}\n`;
-  message += `📍 ${address}\n`;
-  message += `⏰ ${time}\n`;
-  message += `🗺️ ${mapLink}\n\n`;
-});
-
-// ✅ 防止爆字數（關鍵）
-if (message.length > 4500) {
-  message = message.substring(0, 4500) + "\n\n...(請輸入 午餐2 看更多)";
-}
-
-return client.replyMessage(replyToken, {
-  type: 'text',
-  text: message
-});
+    const textMessage = lunchData.formatLunchMessage(allShops);
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: textMessage
+    });
   }
   
   // 如果輸入「午餐 店名」，進行搜尋
@@ -708,27 +669,17 @@ return client.replyMessage(replyToken, {
       }
       
       // 多筆結果，顯示列表
-     let message = "🍱 礁溪午餐店列表\n";
-message += "━━━━━━━━━━━━\n\n";
-
-allShops.slice(0, 10).forEach((shop, index) => {
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((shop.name || '') + ' ' + (shop.address || ''))}`;
-
-  message += `${index + 1}. ${shop.name || '未命名'}\n`;
-  message += `📍 ${shop.address || '未提供'}\n`;
-  message += `⏰ ${shop.time || '未提供'}\n`;
-  message += `🗺️ ${mapLink}\n\n`;
-});
-
-// 防止LINE爆掉
-if (message.length > 4500) {
-  message = message.substring(0, 4500) + "\n\n...(更多請縮小搜尋)";
-}
-
-return client.replyMessage(replyToken, {
-  type: 'text',
-  text: message
-});
+      let message = `🔍 找到 ${results.length} 間相關店家\n`;
+      message += `━━━━━━━━━━━━\n\n`;
+      results.forEach((shop, index) => {
+        message += `${index + 1}. ${shop.name}\n`;
+      });
+      message += `\n💡 輸入完整店名查看詳細資訊`;
+      
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: message
+      });
     }
   }
   
