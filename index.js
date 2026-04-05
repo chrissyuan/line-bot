@@ -654,14 +654,25 @@ async function handleLunchQuery(userMessage, replyToken) {
     let message = "🍱 礁溪午餐店列表\n";
 message += "━━━━━━━━━━━━\n\n";
 
-allShops.forEach((shop, index) => {
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name + ' ' + shop.address)}`;
+// ✅ 只取前10筆（超重要）
+allShops.slice(0, 10).forEach((shop, index) => {
 
-  message += `${index + 1}. ${shop.name}\n`;
-  message += `📍 ${shop.address}\n`;
-  message += `⏰ ${shop.time}\n`;
+  const name = shop.name || "未命名";
+  const address = shop.address || "未提供";
+  const time = shop.time || "未提供";
+
+  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`;
+
+  message += `${index + 1}. ${name}\n`;
+  message += `📍 ${address}\n`;
+  message += `⏰ ${time}\n`;
   message += `🗺️ ${mapLink}\n\n`;
 });
+
+// ✅ 防止爆字數（關鍵）
+if (message.length > 4500) {
+  message = message.substring(0, 4500) + "\n\n...(請輸入 午餐2 看更多)";
+}
 
 return client.replyMessage(replyToken, {
   type: 'text',
