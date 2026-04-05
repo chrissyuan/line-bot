@@ -697,21 +697,27 @@ return client.replyMessage(replyToken, {
       }
       
       // 多筆結果，顯示列表
-      let message = `🔍 找到 ${results.length} 間相關店家\n`;
-      message += `━━━━━━━━━━━━\n\n`;
-      results.forEach((shop, index) => {
-  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name + ' ' + shop.address)}`;
+     let message = "🍱 礁溪午餐店列表\n";
+message += "━━━━━━━━━━━━\n\n";
 
-  message += `${index + 1}. ${shop.name}\n`;
-  message += `📍 ${shop.address}\n`;
+allShops.slice(0, 10).forEach((shop, index) => {
+  const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((shop.name || '') + ' ' + (shop.address || ''))}`;
+
+  message += `${index + 1}. ${shop.name || '未命名'}\n`;
+  message += `📍 ${shop.address || '未提供'}\n`;
+  message += `⏰ ${shop.time || '未提供'}\n`;
   message += `🗺️ ${mapLink}\n\n`;
 });
-      message += `\n💡 輸入完整店名查看詳細資訊`;
-      
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: message
-      });
+
+// 防止LINE爆掉
+if (message.length > 4500) {
+  message = message.substring(0, 4500) + "\n\n...(更多請縮小搜尋)";
+}
+
+return client.replyMessage(replyToken, {
+  type: 'text',
+  text: message
+});
     }
   }
   
