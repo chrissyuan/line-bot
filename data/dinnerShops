@@ -1,1 +1,1175 @@
+// 晚餐店資料庫
+const dinnerShops = [
+  {
+    name: '龍爺鳳娘湯品 礁溪總店',
+    address: '262宜蘭縣礁溪鄉德陽路30號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路30號'
+  },
+  {
+    name: '初食軒',
+    address: '262宜蘭縣礁溪鄉仁愛路48巷18弄1號',
+    hours: '11:30–14:00、17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路48巷18弄1號'
+  },
+  {
+    name: '日嚐こんばんは 礁溪店',
+    address: '262宜蘭縣礁溪鄉德陽路95號',
+    hours: '17:00–01:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路95號'
+  },
+  {
+    name: '熳老爺 MANROYAL',
+    address: '262宜蘭縣礁溪鄉玉龍路二段289號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段289號'
+  },
+  {
+    name: '橙心手作料理',
+    address: '262宜蘭縣礁溪鄉玉龍路二段460-1號',
+    hours: '11:00–14:00、17:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段460-1號'
+  },
+  {
+    name: '寒沐酒店中餐廳',
+    address: '262宜蘭縣礁溪鄉健康路1號3樓',
+    hours: '11:30–14:30、17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉健康路1號'
+  },
+  {
+    name: '黑海時光',
+    address: '262宜蘭縣礁溪鄉和平路107號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉和平路107號'
+  },
+  {
+    name: '八寶冬粉（Bando）',
+    address: '262宜蘭縣礁溪鄉七峰街36號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉七峰街36號'
+  },
+  {
+    name: '了了礁溪 Habitat',
+    address: '262宜蘭縣礁溪鄉公園路70巷30號',
+    hours: '07:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉公園路70巷30號'
+  },
+  {
+    name: '添喜海鮮小吃',
+    address: '262宜蘭縣礁溪鄉德陽路91號',
+    hours: '11:00–14:00、17:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路91號'
+  },
+  {
+    name: '塭底烤魚',
+    address: '262宜蘭縣礁溪鄉玉龍路二段572號',
+    hours: '11:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段572號'
+  },
+  {
+    name: '快炒樂室',
+    address: '262宜蘭縣礁溪鄉健康一街20號',
+    hours: '11:30–14:00、17:00–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉健康一街20號'
+  },
+  {
+    name: '奶油麵包礁溪旗艦店',
+    address: '262宜蘭縣礁溪鄉礁溪路六段35號',
+    hours: '11:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路六段35號'
+  },
+  {
+    name: '合鴨米灶腳',
+    address: '262宜蘭縣礁溪鄉中山路二段190號',
+    hours: '11:00–14:00、17:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段190號'
+  },
+  {
+    name: '宜蘭火山爆發雞',
+    address: '262宜蘭縣礁溪鄉礁溪路七段39號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段39號'
+  },
+  {
+    name: '拾松辦桌小吃',
+    address: '262宜蘭縣礁溪鄉白雲三路30號',
+    hours: '11:00–14:00、17:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉白雲三路30號'
+  },
+  {
+    name: '礁溪庄櫻桃鴨',
+    address: '262宜蘭縣礁溪鄉礁溪路六段220號',
+    hours: '11:00–14:00、17:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路六段220號'
+  },
+  {
+    name: '宜蘭滷之鄉',
+    address: '262宜蘭縣礁溪鄉德陽路68號',
+    hours: '11:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路68號'
+  },
+  {
+    name: '樂山溫泉拉麵（礁溪店）',
+    address: '262宜蘭縣礁溪鄉礁溪路五段108巷1號',
+    hours: '11:00–14:00、17:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段108巷1號'
+  },
+  {
+    name: '三燔礁溪',
+    address: '262宜蘭縣礁溪鄉溫泉路67號11樓',
+    hours: '17:20–19:00、19:30–21:10',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路67號'
+  },
+  {
+    name: '老將自助餐',
+    address: '262宜蘭縣礁溪鄉礁溪路四段45號',
+    hours: '10:30–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段45號'
+  },
+  {
+    name: '阿和烤肉',
+    address: '262宜蘭縣礁溪鄉中山路二段80號',
+    hours: '17:00–23:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段80號'
+  },
+  {
+    name: '阿亮烤肉',
+    address: '262宜蘭縣礁溪鄉礁溪路五段90號',
+    hours: '17:30–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段90號'
+  },
+  {
+    name: '仙遊小卷米粉',
+    address: '262宜蘭縣礁溪鄉中山路一段234號',
+    hours: '11:30–14:30、17:30–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段234號'
+  },
+  {
+    name: '礁溪麵當家',
+    address: '262宜蘭縣礁溪鄉礁溪路四段169號',
+    hours: '11:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段169號'
+  },
+  {
+    name: '味美 花蓮扁食x抄手麵',
+    address: '262004宜蘭縣礁溪鄉育才路7號',
+    hours: '11:30–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育才路7號'
+  },
+  {
+    name: '潮州牛雜',
+    address: '262宜蘭縣礁溪鄉礁溪路五段9號',
+    hours: '11:00–14:00、17:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段9號'
+  },
+  {
+    name: '礁心鐵板燒無菜單料理',
+    address: '262宜蘭縣礁溪鄉溫泉路62號',
+    hours: '12:00–14:00、17:30–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路62號'
+  },
+  {
+    name: '看見廚房',
+    address: '262宜蘭縣礁溪鄉中山路一段225號',
+    hours: '11:00–14:30、17:00–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段225號'
+  },
+  {
+    name: '礁溪雞肉飯',
+    address: '262宜蘭縣礁溪鄉中山路一段103號',
+    hours: '09:30–18:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段103號'
+  },
+  {
+    name: 'Wa Cow Brunch',
+    address: '262宜蘭縣礁溪鄉信義路4號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉信義路4號'
+  },
+  {
+    name: '鼎楓寶島火鍋 礁溪店',
+    address: '262宜蘭縣礁溪鄉礁溪路四段185號',
+    hours: '11:30–14:30、17:30–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段185號'
+  },
+  {
+    name: '山友拉麵',
+    address: '262宜蘭縣礁溪鄉中山路二段187號',
+    hours: '11:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段187號'
+  },
+  {
+    name: '衷記港式燒臘',
+    address: '262宜蘭縣礁溪鄉中山路二段82-1號',
+    hours: '10:30–14:00、17:00–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段82-1號'
+  },
+  {
+    name: '日式料理小吃',
+    address: '262宜蘭縣礁溪鄉中山路一段180號',
+    hours: '11:00–14:00、16:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段180號'
+  },
+  {
+    name: '陳旺記鴨片飯',
+    address: '262宜蘭縣礁溪鄉德陽路30號',
+    hours: '11:00–14:00、16:00–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路30號'
+  },
+  {
+    name: '龍爺鳳娘砂鍋粥品',
+    address: '262宜蘭縣礁溪鄉仁愛路162號',
+    hours: '11:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路162號'
+  },
+  {
+    name: '品文旅礁溪',
+    address: '26241宜蘭縣礁溪鄉健康二街21巷2號',
+    hours: '06:30–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉健康二街21巷2號'
+  },
+  {
+    name: '元氣鍋燒（礁溪店）',
+    address: '262宜蘭縣礁溪鄉育才路8號',
+    hours: '11:00–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育才路8號'
+  },
+  {
+    name: '有麵煮私房小吃-礁溪店',
+    address: '262宜蘭縣礁溪鄉礁溪路五段33號',
+    hours: '11:00–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段33號'
+  },
+  {
+    name: '經典美食坊',
+    address: '262宜蘭縣礁溪鄉仁愛路2號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路2號'
+  },
+  {
+    name: '跨力',
+    address: '262宜蘭縣礁溪鄉礁溪路四段193號',
+    hours: '18:00–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段193號'
+  },
+  {
+    name: '鴻航鐵板燒',
+    address: '26242宜蘭縣礁溪鄉中山路二段182號',
+    hours: '11:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段182號'
+  },
+  {
+    name: '可口冰城',
+    address: '262宜蘭縣礁溪鄉中山路二段66號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段66號'
+  },
+  {
+    name: '太和藝饌 義式小廚房',
+    address: '262宜蘭縣礁溪鄉溫泉路56號',
+    hours: '',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路56號'
+  },
+  {
+    name: '木木韓食堂',
+    address: '262宜蘭縣礁溪鄉十六結路三城巷59號',
+    hours: '10:30–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉十六結路三城巷59號'
+  },
+  {
+    name: '非炒不可砂鍋魚頭',
+    address: '262宜蘭縣礁溪鄉和平路44號',
+    hours: '11:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉和平路44號'
+  },
+  {
+    name: 'Phở Wild 越式生牛肉河粉',
+    address: '262宜蘭縣礁溪鄉礁溪路四段170號',
+    hours: '11:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段170號'
+  },
+  {
+    name: '台妹炸雞翅',
+    address: '262宜蘭縣礁溪鄉中山路一段220號',
+    hours: '13:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段220號'
+  },
+  {
+    name: '礁溪悅德素食館',
+    address: '262宜蘭縣礁溪鄉中山路一段248號',
+    hours: '11:00–14:00、17:00–19:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段248號'
+  },
+  {
+    name: '一粥七天',
+    address: '262宜蘭縣礁溪鄉育才路10號',
+    hours: '18:00–02:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育才路10號'
+  },
+  {
+    name: '朝客の食堂',
+    address: '262宜蘭縣礁溪鄉中山路一段280號',
+    hours: '00:00–08:00、19:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段280號'
+  },
+  {
+    name: 'ㄚ文小吃',
+    address: '262宜蘭縣礁溪鄉中山路一段209號',
+    hours: '17:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段209號'
+  },
+  {
+    name: '小龍湯包',
+    address: '262宜蘭縣礁溪鄉礁溪路四段180號',
+    hours: '10:00–04:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段180號'
+  },
+  {
+    name: '堂記牛肉麵',
+    address: '262宜蘭縣礁溪鄉礁溪路四段140號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段140號'
+  },
+  {
+    name: '陽光田園',
+    address: '262宜蘭縣礁溪鄉仁愛路158號',
+    hours: '11:00–14:00、16:30–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路158號'
+  },
+  {
+    name: '三炸王',
+    address: '262宜蘭縣礁溪鄉中山路一段161號',
+    hours: '16:00–22:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段161號'
+  },
+  {
+    name: '藍城燒貨',
+    address: '262宜蘭縣礁溪鄉礁溪路五段150號',
+    hours: '17:00–01:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段150號'
+  },
+  {
+    name: '大灶雞',
+    address: '262宜蘭縣礁溪鄉礁溪路七段26號',
+    hours: '11:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段26號'
+  },
+  {
+    name: '襄聚牛排',
+    address: '262宜蘭縣礁溪鄉育才路24號',
+    hours: '11:00–13:00、16:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育才路24號'
+  },
+  {
+    name: '樂山溫泉拉麵二店',
+    address: '262宜蘭縣礁溪鄉公園路20號',
+    hours: '11:00–14:20、17:00–20:20',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉公園路20號'
+  },
+  {
+    name: '基隆甕仔雞',
+    address: '262宜蘭縣礁溪鄉礁溪路六段256-1號',
+    hours: '11:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路六段256-1號'
+  },
+  {
+    name: '海味鱻生猛海鮮熱炒',
+    address: '262宜蘭縣礁溪鄉中山路二段96之3號',
+    hours: '16:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段96之3號'
+  },
+  {
+    name: '莊家古早味料理',
+    address: '262宜蘭縣礁溪鄉中山路二段178號',
+    hours: '11:00–14:00、17:00–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段178號'
+  },
+  {
+    name: '嚕嚕米宵夜小吃',
+    address: '262宜蘭縣礁溪鄉仁愛路172號',
+    hours: '18:30–00:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路172號'
+  },
+  {
+    name: '一酔居酒屋',
+    address: '262宜蘭縣礁溪鄉溫泉路11號',
+    hours: '17:30–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路11號'
+  },
+  {
+    name: '享鮮食坊',
+    address: '262宜蘭縣礁溪鄉淇武蘭一路59號',
+    hours: '11:30–13:00、17:30–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭一路59號'
+  },
+  {
+    name: '木子串燒',
+    address: '262宜蘭縣礁溪鄉信義路3號',
+    hours: '18:00–23:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉信義路3號'
+  },
+  {
+    name: '米澤廳',
+    address: '262宜蘭縣礁溪鄉中山路二段187號',
+    hours: '07:00–10:00、17:30–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段187號'
+  },
+  {
+    name: '三妹爌肉飯',
+    address: '262宜蘭縣礁溪鄉中山路二段134號',
+    hours: '08:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段134號'
+  },
+  {
+    name: '順惠日海料理店',
+    address: '262宜蘭縣礁溪鄉和平路101號1樓',
+    hours: '11:00–14:00、17:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉和平路101號'
+  },
+  {
+    name: '銀蕨和洋屋',
+    address: '262宜蘭縣礁溪鄉礁溪路六段162巷1-1號',
+    hours: '11:30–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路六段162巷1-1號'
+  },
+  {
+    name: '瑞麟美而美晨美早午晚餐',
+    address: '262宜蘭縣礁溪鄉礁溪路五段10號',
+    hours: '05:30–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段10號'
+  },
+  {
+    name: '享享自助百匯',
+    address: '262宜蘭縣礁溪鄉中山路二段218號2樓',
+    hours: '07:00–13:00、18:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段218號'
+  },
+  {
+    name: '舞穗創意壽司',
+    address: '262宜蘭縣礁溪鄉中山路二段116號',
+    hours: '16:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段116號'
+  },
+  {
+    name: '焿爸子',
+    address: '262宜蘭縣礁溪鄉溫泉路31號',
+    hours: '12:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路31號'
+  },
+  {
+    name: '林北烤好串燒居酒屋',
+    address: '262宜蘭縣礁溪鄉溫泉路48號',
+    hours: '17:30–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路48號'
+  },
+  {
+    name: '阿芬熱炒.蚵仔煎',
+    address: '262宜蘭縣礁溪鄉中山路二段65號',
+    hours: '17:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段65號'
+  },
+  {
+    name: '礁溪一碗小羊肉',
+    address: '262宜蘭縣礁溪鄉中山路二段85號',
+    hours: '16:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段85號'
+  },
+  {
+    name: '鴻福鐵板燒',
+    address: '262宜蘭縣礁溪鄉溫泉路26號',
+    hours: '11:00–15:30、16:30–19:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路26號'
+  },
+  {
+    name: '三寸舌尖',
+    address: '262宜蘭縣礁溪鄉柴圍路10號',
+    hours: '11:00–13:40、17:00–19:40',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉柴圍路10號'
+  },
+  {
+    name: '礁溪包子饅頭專賣店',
+    address: '262宜蘭縣礁溪鄉中山路一段218號',
+    hours: '13:00–17:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段218號'
+  },
+  {
+    name: '上新餐廳',
+    address: '262宜蘭縣礁溪鄉礁溪路三段106號',
+    hours: '12:00–13:00、15:30–18:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路三段106號'
+  },
+  {
+    name: '阿田師平價快炒',
+    address: '262宜蘭縣礁溪鄉中山路二段168號',
+    hours: '16:00–00:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段168號'
+  },
+  {
+    name: 'Woolii無理炸雞',
+    address: '262宜蘭縣礁溪鄉礁溪路五段130-3號',
+    hours: '16:00–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段130-3號'
+  },
+  {
+    name: '三媽臭臭鍋',
+    address: '262宜蘭縣礁溪鄉礁溪路四段221號',
+    hours: '16:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段221號'
+  },
+  {
+    name: '串居酒屋',
+    address: '262宜蘭縣礁溪鄉德陽路69號',
+    hours: '17:00–01:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路69號'
+  },
+  {
+    name: '現代魚販鮮活水產',
+    address: '262宜蘭縣礁溪鄉育英路12號',
+    hours: '16:00–02:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育英路12號'
+  },
+  {
+    name: '明水然・樂',
+    address: '262宜蘭縣礁溪鄉淇武蘭路110-7號1&2樓',
+    hours: '12:30–15:00、17:10–21:40',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路110-7號'
+  },
+  {
+    name: '珠司馬吉熱炒',
+    address: '262宜蘭縣礁溪鄉大忠路21號',
+    hours: '11:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大忠路21號'
+  },
+  {
+    name: '葛瑪蘭海鮮餐廳',
+    address: '262宜蘭縣礁溪鄉德陽路31號',
+    hours: '11:30–14:30、17:30–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路31號'
+  },
+  {
+    name: '大塭觀光休閒養殖區/輕親魚朶',
+    address: '262宜蘭縣礁溪鄉玉龍路二段495號',
+    hours: '10:00–18:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段495號'
+  },
+  {
+    name: '水鹿咖啡親子館',
+    address: '262宜蘭縣礁溪鄉塭底路3-15號',
+    hours: '10:00–19:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉塭底路3-15號'
+  },
+  {
+    name: '東方紅鐵板創意料理',
+    address: '262宜蘭縣礁溪鄉健康路36號',
+    hours: '11:30–15:00、17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉健康路36號'
+  },
+  {
+    name: '上乘三家涮涮鍋',
+    address: '262宜蘭縣礁溪鄉中山路二段171之1號',
+    hours: '11:30–22:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段171之1號'
+  },
+  {
+    name: '蒔花 DailyBlossom',
+    address: '26249宜蘭縣礁溪鄉十六結路23之17號',
+    hours: '10:00–18:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉十六結路23之17號'
+  },
+  {
+    name: '浦島漁夫食堂',
+    address: '262宜蘭縣礁溪鄉礁溪路六段26號',
+    hours: '11:30–14:00、17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路六段26號'
+  },
+  {
+    name: '焰餐廳 Le Flame',
+    address: '262007宜蘭縣礁溪鄉五峰路89-6號',
+    hours: '07:00–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉五峰路89-6號'
+  },
+  {
+    name: '禪心居',
+    address: '262宜蘭縣礁溪鄉大忠路14號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大忠路14號'
+  },
+  {
+    name: '玉仁八寶冬粉',
+    address: '262宜蘭縣礁溪鄉中山路一段326號',
+    hours: '10:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段326號'
+  },
+  {
+    name: '鳥大人',
+    address: '262宜蘭縣礁溪鄉礁溪路五段25號1樓',
+    hours: '17:30–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段25號'
+  },
+  {
+    name: '鴨咪村食坊',
+    address: '262宜蘭縣礁溪鄉十六結路三城巷36號',
+    hours: '11:30–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉十六結路三城巷36號'
+  },
+  {
+    name: '復興川菜',
+    address: '262宜蘭縣礁溪鄉溫泉路57號1樓',
+    hours: '11:00–14:00、17:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路57號'
+  },
+  {
+    name: '如意麵食館',
+    address: '262宜蘭縣礁溪鄉中山路二段61號',
+    hours: '11:00–15:00、16:00–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段61號'
+  },
+  {
+    name: '皇家花園餐廳',
+    address: '262宜蘭縣礁溪鄉礁溪路七段109號',
+    hours: '11:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段109號'
+  },
+  {
+    name: '270越南小吃',
+    address: '262宜蘭縣礁溪鄉中山路一段270號',
+    hours: '11:00–19:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段270號'
+  },
+  {
+    name: '如意小館',
+    address: '262宜蘭縣礁溪鄉德陽路151號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路151號'
+  },
+  {
+    name: '來益魚行',
+    address: '262宜蘭縣礁溪鄉中山路二段106號',
+    hours: '16:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段106號'
+  },
+  {
+    name: '蘭揚蘆花雞餐廳',
+    address: '262宜蘭縣礁溪鄉十六結路31之12號',
+    hours: '11:30–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉十六結路31之12號'
+  },
+  {
+    name: '帝煲瓦罐煨湯館',
+    address: '262宜蘭縣礁溪鄉礁溪路三段176號',
+    hours: '11:30–14:00、17:30–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路三段176號'
+  },
+  {
+    name: '漁家莊活魚碳烤',
+    address: '262宜蘭縣礁溪鄉柴圍路77-1號',
+    hours: '11:00–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉柴圍路77-1號'
+  },
+  {
+    name: '鮮九鼎親子釣蝦',
+    address: '262宜蘭縣礁溪鄉溫泉路85號1樓',
+    hours: '14:00–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路85號'
+  },
+  {
+    name: '里海咖啡',
+    address: '262宜蘭縣礁溪鄉玉龍路二段406號',
+    hours: '11:30–16:00、17:30–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段406號'
+  },
+  {
+    name: '福。壽司',
+    address: '262宜蘭縣礁溪鄉中山路二段88號',
+    hours: '17:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段88號'
+  },
+  {
+    name: '九瑩餐廳',
+    address: '262宜蘭縣礁溪鄉礁溪路三段141號',
+    hours: '09:00–17:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路三段141號'
+  },
+  {
+    name: '礁溪老街桂英小吃',
+    address: '262宜蘭縣礁溪鄉中山路二段53號',
+    hours: '07:00–14:30、17:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段53號'
+  },
+  {
+    name: '小武海鮮熱炒',
+    address: '262宜蘭縣礁溪鄉礁溪路四段79號',
+    hours: '17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段79號'
+  },
+  {
+    name: '甕窯雞礁溪總店',
+    address: '262宜蘭縣礁溪鄉礁溪路七段7之7號',
+    hours: '09:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段7之7號'
+  },
+  {
+    name: '玉里橋頭臭豆腐',
+    address: '262宜蘭縣礁溪鄉礁溪路三段56號',
+    hours: '11:00–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路三段56號'
+  },
+  {
+    name: '礁溪鐘氏肉羹',
+    address: '262宜蘭縣礁溪鄉中山路二段19號',
+    hours: '09:00–19:45',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段19號'
+  },
+  {
+    name: '塩旨串燒',
+    address: '262宜蘭縣礁溪鄉中山路二段62號',
+    hours: '18:00–00:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段62號'
+  },
+  {
+    name: '龜山島海鮮平價熱炒',
+    address: '26242宜蘭縣礁溪鄉礁溪路五段107號',
+    hours: '11:00–14:00、17:00–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段107號'
+  },
+  {
+    name: '吸貓咖啡館',
+    address: '262宜蘭縣礁溪鄉三路113號',
+    hours: '11:00–17:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉三路113號'
+  },
+  {
+    name: '礁溪漁田村',
+    address: '262宜蘭縣礁溪鄉玉龍路一段498號',
+    hours: '11:30–14:30、17:30–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路一段498號'
+  },
+  {
+    name: '春沐鐵板燒',
+    address: '262宜蘭縣礁溪鄉公園路段100巷28號',
+    hours: '11:30–14:00、17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉公園路100巷28號'
+  },
+  {
+    name: '礁溪鬼匠拉麵',
+    address: '262宜蘭縣礁溪鄉中山路二段68號',
+    hours: '11:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段68號'
+  },
+  {
+    name: '天下第一窯烤雞',
+    address: '262宜蘭縣礁溪鄉礁溪路三段42號',
+    hours: '11:00–16:00、17:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路三段42號'
+  },
+  {
+    name: '饗素 蔬食坊',
+    address: '262宜蘭縣礁溪鄉德陽街6號',
+    hours: '',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽街6號'
+  },
+  {
+    name: 'MIMI pizza🇮🇹',
+    address: '262宜蘭縣礁溪鄉溫泉路85號',
+    hours: '12:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路85號'
+  },
+  {
+    name: '北海岸鵝肉快炒',
+    address: '262宜蘭縣礁溪鄉德陽路36號',
+    hours: '10:00–14:00、17:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路36號'
+  },
+  {
+    name: '火山爆發雞',
+    address: '262宜蘭縣礁溪鄉礁溪路七段39號',
+    hours: '10:00–20:20',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段39號'
+  },
+  {
+    name: '亀マウンテン居酒屋',
+    address: '262宜蘭縣礁溪鄉溫泉路85號',
+    hours: '17:30–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路85號'
+  },
+  {
+    name: '御園料理',
+    address: '262宜蘭縣礁溪鄉中山路二段172號',
+    hours: '17:00–22:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段172號'
+  },
+  {
+    name: '雲天自助餐廳',
+    address: '262宜蘭縣礁溪鄉五峰路69號B1',
+    hours: '07:00–10:30、11:30–14:00、17:20–19:10、19:30–21:20',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉五峰路69號'
+  },
+  {
+    name: '麥當勞',
+    address: '262宜蘭縣礁溪鄉礁溪路四段158號',
+    hours: '05:00–04:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段158號'
+  },
+  {
+    name: '大碗公牛肉麵',
+    address: '262宜蘭縣礁溪鄉礁溪路四段172號',
+    hours: '11:00–20:45',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段172號'
+  },
+  {
+    name: '一杯起鐵板串燒酒食',
+    address: '262宜蘭縣礁溪鄉忠孝路45號',
+    hours: '17:00–00:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉忠孝路45號'
+  },
+  {
+    name: '有機大地健康蔬食餐廳',
+    address: '262宜蘭縣礁溪鄉中山路二段51號',
+    hours: '09:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段51號'
+  },
+  {
+    name: '168自助涮涮鍋',
+    address: '262宜蘭縣礁溪鄉礁溪路五段1-2號2樓',
+    hours: '11:00–14:00、17:00–22:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段1號'
+  },
+  {
+    name: '和壽司',
+    address: '262宜蘭縣礁溪鄉中山路二段124號',
+    hours: '11:00–14:00、17:00–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段124號'
+  },
+  {
+    name: '永興小館',
+    address: '262宜蘭縣礁溪鄉德陽路124號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路124號'
+  },
+  {
+    name: '黔香坊',
+    address: '262宜蘭縣礁溪鄉大忠路23號',
+    hours: '11:30–23:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大忠路23號'
+  },
+  {
+    name: '老丸家EX極致鍋物-礁溪館',
+    address: '262宜蘭縣礁溪鄉公園路段100巷28號和風廳2樓',
+    hours: '17:30–21:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉公園路100巷28號'
+  },
+  {
+    name: '海珍園海鮮',
+    address: '262宜蘭縣礁溪鄉礁溪路七段138號',
+    hours: '11:00–14:00、17:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段138號'
+  },
+  {
+    name: '陽光什鍋礁溪店',
+    address: '262宜蘭縣礁溪鄉仁愛路176號',
+    hours: '12:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路176號'
+  },
+  {
+    name: '豚兵衛 燒肉Yaki',
+    address: '262宜蘭縣礁溪鄉礁溪路五段166號',
+    hours: '11:30–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段166號'
+  },
+  {
+    name: '正好鮮肉小籠包-礁溪店',
+    address: '262宜蘭縣礁溪鄉仁愛路122號',
+    hours: '09:30–03:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路122號'
+  },
+  {
+    name: '鵝肉郎海鮮',
+    address: '262宜蘭縣礁溪鄉信義路29號1樓',
+    hours: '11:00–14:00、17:00–20:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉信義路29號'
+  },
+  {
+    name: '小周牛肉麵',
+    address: '262宜蘭縣礁溪鄉中山路二段164號',
+    hours: '11:00–14:30、17:00–21:30',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段164號'
+  },
+  {
+    name: '呷炒飯',
+    address: '262宜蘭縣礁溪鄉礁溪路四段207號',
+    hours: '11:00–14:00、16:00–20:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段207號'
+  },
+  {
+    name: '艾德堡德國美食餐廳',
+    address: '262宜蘭縣礁溪鄉柴圍路78-5號',
+    hours: '11:45–14:15',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉柴圍路78-5號'
+  },
+  {
+    name: '淑蓮清粥店',
+    address: '262宜蘭縣礁溪鄉溫泉路27號',
+    hours: '10:00–19:00',
+    phone: '',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路27號'
+  }
+];
 
+// ==================== 工具函數 ====================
+
+/**
+ * 根據關鍵字搜尋晚餐店（只搜尋店名）
+ */
+function searchDinnerShops(keyword) {
+  if (!keyword) return dinnerShops;
+  const lowerKeyword = keyword.toLowerCase();
+  return dinnerShops.filter(shop =>
+    shop.name.toLowerCase().includes(lowerKeyword)
+  );
+}
+
+/**
+ * 取得所有晚餐店
+ */
+function getAllDinnerShops() {
+  return dinnerShops;
+}
+
+/**
+ * 取得晚餐店數量
+ */
+function getDinnerShopsCount() {
+  return dinnerShops.length;
+}
+
+/**
+ * 取得單一店家詳細資訊（純文字）
+ */
+function getDinnerShopDetail(shopName) {
+  const shop = dinnerShops.find(s =>
+    s.name.includes(shopName) || shopName.includes(s.name)
+  );
+  if (!shop) return null;
+
+  let detail = `🍽️ ${shop.name}\n`;
+  detail += `━━━━━━━━━━━━\n`;
+  detail += `📍 ${shop.address}\n`;
+  detail += `🕐 ${shop.hours}\n`;
+  detail += `🔗 ${shop.mapLink}`;
+  return detail;
+}
+
+/**
+ * 取得單一店家詳細資訊（含圖片）
+ */
+function getDinnerShopDetailWithImage(shopName) {
+  const shop = dinnerShops.find(s =>
+    s.name.includes(shopName) || shopName.includes(s.name)
+  );
+  if (!shop) return null;
+
+  if (shop.imageUrl) {
+    return {
+      type: 'image',
+      originalContentUrl: shop.imageUrl,
+      previewImageUrl: shop.imageUrl,
+      textDetail: `🍽️ ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+    };
+  }
+
+  return {
+    type: 'text',
+    text: `🍽️ ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+  };
+}
+
+/**
+ * 格式化晚餐店訊息（簡潔版）
+ */
+function formatDinnerMessage(shops, limit = 30) {
+  if (!shops || shops.length === 0) {
+    return '🍽️ 找不到相關的晚餐店\n\n💡 提示：可以試試搜尋「晚餐」來查看所有店家';
+  }
+
+  let message = '🍽️ 礁溪晚餐店推薦\n';
+  message += '━━━━━━━━━━━━\n\n';
+
+  const displayShops = shops.slice(0, limit);
+
+  displayShops.forEach((shop, index) => {
+    message += `${index + 1}. ${shop.name}\n`;
+  });
+
+  if (shops.length > limit) {
+    message += `\n📊 還有 ${shops.length - limit} 間店家\n`;
+    message += `💡 輸入「晚餐 店名」搜尋特定店家`;
+  } else {
+    message += `\n📝 共 ${shops.length} 間晚餐店\n`;
+    message += `💡 輸入「晚餐 店名」查看詳細資訊`;
+  }
+
+  message += `\n━━━━━━━━━━━━\n🔍 例如：晚餐 甕窯雞`;
+
+  return message;
+}
+
+module.exports = {
+  dinnerShops,
+  searchDinnerShops,
+  getAllDinnerShops,
+  getDinnerShopsCount,
+  getDinnerShopDetail,
+  getDinnerShopDetailWithImage,
+  formatDinnerMessage
+};
