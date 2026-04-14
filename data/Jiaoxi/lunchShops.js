@@ -777,7 +777,7 @@ const lunchShops = [
 /**
  * 根據關鍵字搜尋午餐店（只搜尋店名）
  */
-function searchLunchShops(keyword) {
+function searchJiaoxiLunchShops(keyword) {
   if (!keyword) return lunchShops;
   const lowerKeyword = keyword.toLowerCase();
   return lunchShops.filter(shop =>
@@ -788,94 +788,76 @@ function searchLunchShops(keyword) {
 /**
  * 取得所有午餐店
  */
-function getAllLunchShops() {
+function getAllJiaoxiLunchShops() {
   return lunchShops;
 }
 
 /**
  * 取得午餐店數量
  */
-function getLunchShopsCount() {
+function getJiaoxiLunchShopsCount() {
   return lunchShops.length;
 }
 
 /**
- * 取得單一店家詳細資訊（純文字）
+ * 取得單一店家詳細資訊（含圖片）- 回傳 Line 訊息格式
  */
-function getLunchShopDetail(shopName) {
+function getJiaoxiLunchShopDetailWithImage(shopName) {
   const shop = lunchShops.find(s =>
     s.name.includes(shopName) || shopName.includes(s.name)
   );
   if (!shop) return null;
 
-  let detail = `🍱 ${shop.name}\n`;
-  detail += `━━━━━━━━━━━━\n`;
-  detail += `📍 ${shop.address}\n`;
-  detail += `🕐 ${shop.hours}\n`;
-  detail += `🔗 ${shop.mapLink}`;
-  return detail;
-}
-
-/**
- * 取得單一店家詳細資訊（含圖片，結構同 breakfastShops）
- */
-function getLunchShopDetailWithImage(shopName) {
-  const shop = lunchShops.find(s =>
-    s.name.includes(shopName) || shopName.includes(s.name)
-  );
-  if (!shop) return null;
+  const textMessage = `🍱 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`;
 
   if (shop.imageUrl) {
     return {
       type: 'image',
       originalContentUrl: shop.imageUrl,
-      previewImageUrl: shop.imageUrl,
-      textDetail: `🍱 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+      previewImageUrl: shop.imageUrl
     };
   }
 
   return {
     type: 'text',
-    text: `🍱 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+    text: textMessage
   };
 }
 
 /**
- * 格式化午餐店訊息（簡潔版，顯示30間）
+ * 格式化午餐店訊息
  */
-function formatLunchMessage(shops, limit = 30) {
+function formatJiaoxiLunchMessage(shops) {
   if (!shops || shops.length === 0) {
-    return '🍱 找不到相關的午餐店\n\n💡 提示：可以試試搜尋「午餐」來查看所有店家';
+    return '🍱 找不到相關的午餐店\n\n💡 提示：輸入「礁溪午餐」查看所有店家';
   }
 
-  let message = '🍱 礁溪午餐店推薦\n';
+  let message = '🍱 礁溪午餐店列表\n';
   message += '━━━━━━━━━━━━\n\n';
 
-  const displayShops = shops.slice(0, limit);
+  const displayShops = shops.slice(0, 30);
 
   displayShops.forEach((shop, index) => {
     message += `${index + 1}. ${shop.name}\n`;
   });
 
-  if (shops.length > limit) {
-    message += `\n📊 還有 ${shops.length - limit} 間店家\n`;
-    message += `💡 輸入「午餐 店名」搜尋特定店家`;
+  if (shops.length > 30) {
+    message += `\n📊 還有 ${shops.length - 30} 間店家\n`;
+    message += `💡 輸入「礁溪午餐 店名」搜尋特定店家`;
   } else {
     message += `\n📝 共 ${shops.length} 間午餐店\n`;
-    message += `💡 輸入「午餐 店名」查看詳細資訊`;
+    message += `💡 輸入「礁溪午餐 店名」查看詳細資訊`;
   }
 
-  message += `\n━━━━━━━━━━━━\n🔍 例如：午餐 甕窯雞`;
+  message += `\n━━━━━━━━━━━━\n🔍 例如：礁溪午餐 甕窯雞`;
 
   return message;
 }
 
 module.exports = {
-  lunchShops,
-  searchLunchShops,
-  getAllLunchShops,
-  getLunchShopsCount,
-  getLunchShopDetail,
-  getLunchShopDetailWithImage,
-  formatLunchMessage
+  getAllJiaoxiLunchShops,
+  getJiaoxiLunchShopsCount,
+  searchJiaoxiLunchShops,
+  getJiaoxiLunchShopDetailWithImage,
+  formatJiaoxiLunchMessage
 };
