@@ -2,10 +2,10 @@ const express = require('express');
 const axios = require('axios');
 const line = require('@line/bot-sdk');
 
-// 導入資料 - 改用新的命名方式
-const jiaoxiBreakfastData = require('./data/jiaoxi-breakfastShops');
-const lunchData = require('./data/lunchShops');
-const dinnerData = require('./data/dinnerShops');
+// 導入資料 - 新的路徑結構
+const jiaoxiBreakfastData = require('./data/Jiaoxi/breakfastShop');
+const jiaoxiLunchData = require('./data/Jiaoxi/lunchShop');
+const jiaoxiDinnerData = require('./data/Jiaoxi/dinnerShop');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -550,13 +550,13 @@ async function getDebugInfo() {
     debugText += `\n🍳 礁溪早餐店資料庫\n`;
     debugText += `店家總數: ${jiaoxiBreakfastData.getJiaoxiBreakfastShopsCount()} 間\n`;
 
-    // 加入午餐店統計資訊
-    debugText += `\n🍱 午餐店資料庫\n`;
-    debugText += `店家總數: ${lunchData.getLunchShopsCount()} 間\n`;
+    // 加入礁溪午餐店統計資訊
+    debugText += `\n🍱 礁溪午餐店資料庫\n`;
+    debugText += `店家總數: ${jiaoxiLunchData.getJiaoxiLunchShopsCount()} 間\n`;
 
-    // 加入晚餐店統計資訊
-    debugText += `\n🍽️ 晚餐店資料庫\n`;
-    debugText += `店家總數: ${dinnerData.getDinnerShopsCount()} 間\n`;
+    // 加入礁溪晚餐店統計資訊
+    debugText += `\n🍽️ 礁溪晚餐店資料庫\n`;
+    debugText += `店家總數: ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間\n`;
 
     if (debugText.length > 4900) {
       debugText = debugText.substring(0, 4900) + '...';
@@ -631,43 +631,43 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken) {
 }
 
 /**
- * 處理午餐店查詢
+ * 處理礁溪午餐店查詢
  */
-async function handleLunchQuery(userMessage, replyToken) {
-  // 如果只輸入「午餐」，顯示所有店家列表
-  if (userMessage === '午餐') {
-    const allShops = lunchData.getAllLunchShops();
-    const textMessage = lunchData.formatLunchMessage(allShops);
+async function handleJiaoxiLunchQuery(userMessage, replyToken) {
+  // 如果只輸入「礁溪午餐」，顯示所有店家列表
+  if (userMessage === '礁溪午餐') {
+    const allShops = jiaoxiLunchData.getAllJiaoxiLunchShops();
+    const textMessage = jiaoxiLunchData.formatJiaoxiLunchMessage(allShops);
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
   }
   
-  // 如果輸入「午餐 店名」，進行搜尋
-  if (userMessage.includes('午餐')) {
-    const keyword = userMessage.replace('午餐', '').trim();
+  // 如果輸入「礁溪午餐 店名」，進行搜尋
+  if (userMessage.includes('礁溪午餐')) {
+    const keyword = userMessage.replace('礁溪午餐', '').trim();
     
     if (keyword) {
       // 先嘗試直接獲取店家詳細資訊
-      const shopDetail = lunchData.getLunchShopDetailWithImage(keyword);
+      const shopDetail = jiaoxiLunchData.getJiaoxiLunchShopDetailWithImage(keyword);
       if (shopDetail) {
         return client.replyMessage(replyToken, shopDetail);
       }
       
       // 如果找不到完全匹配，進行模糊搜尋
-      const results = lunchData.searchLunchShops(keyword);
+      const results = jiaoxiLunchData.searchJiaoxiLunchShops(keyword);
       
       if (results.length === 0) {
         return client.replyMessage(replyToken, {
           type: 'text',
-          text: `🔍 找不到「${keyword}」相關的午餐店\n\n💡 提示：輸入「午餐」查看所有店家列表`
+          text: `🔍 找不到「${keyword}」相關的礁溪午餐店\n\n💡 提示：輸入「礁溪午餐」查看所有店家列表`
         });
       }
       
       if (results.length === 1) {
         // 只有一筆結果，直接顯示詳細資訊
-        const detail = lunchData.getLunchShopDetailWithImage(results[0].name);
+        const detail = jiaoxiLunchData.getJiaoxiLunchShopDetailWithImage(results[0].name);
         return client.replyMessage(replyToken, detail);
       }
       
@@ -690,43 +690,43 @@ async function handleLunchQuery(userMessage, replyToken) {
 }
 
 /**
- * 處理晚餐店查詢
+ * 處理礁溪晚餐店查詢
  */
-async function handleDinnerQuery(userMessage, replyToken) {
-  // 如果只輸入「晚餐」，顯示所有店家列表
-  if (userMessage === '晚餐') {
-    const allShops = dinnerData.getAllDinnerShops();
-    const textMessage = dinnerData.formatDinnerMessage(allShops);
+async function handleJiaoxiDinnerQuery(userMessage, replyToken) {
+  // 如果只輸入「礁溪晚餐」，顯示所有店家列表
+  if (userMessage === '礁溪晚餐') {
+    const allShops = jiaoxiDinnerData.getAllJiaoxiDinnerShops();
+    const textMessage = jiaoxiDinnerData.formatJiaoxiDinnerMessage(allShops);
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
   }
   
-  // 如果輸入「晚餐 店名」，進行搜尋
-  if (userMessage.includes('晚餐')) {
-    const keyword = userMessage.replace('晚餐', '').trim();
+  // 如果輸入「礁溪晚餐 店名」，進行搜尋
+  if (userMessage.includes('礁溪晚餐')) {
+    const keyword = userMessage.replace('礁溪晚餐', '').trim();
     
     if (keyword) {
       // 先嘗試直接獲取店家詳細資訊
-      const shopDetail = dinnerData.getDinnerShopDetailWithImage(keyword);
+      const shopDetail = jiaoxiDinnerData.getJiaoxiDinnerShopDetailWithImage(keyword);
       if (shopDetail) {
         return client.replyMessage(replyToken, shopDetail);
       }
       
       // 如果找不到完全匹配，進行模糊搜尋
-      const results = dinnerData.searchDinnerShops(keyword);
+      const results = jiaoxiDinnerData.searchJiaoxiDinnerShops(keyword);
       
       if (results.length === 0) {
         return client.replyMessage(replyToken, {
           type: 'text',
-          text: `🔍 找不到「${keyword}」相關的晚餐店\n\n💡 提示：輸入「晚餐」查看所有店家列表`
+          text: `🔍 找不到「${keyword}」相關的礁溪晚餐店\n\n💡 提示：輸入「礁溪晚餐」查看所有店家列表`
         });
       }
       
       if (results.length === 1) {
         // 只有一筆結果，直接顯示詳細資訊
-        const detail = dinnerData.getDinnerShopDetailWithImage(results[0].name);
+        const detail = jiaoxiDinnerData.getJiaoxiDinnerShopDetailWithImage(results[0].name);
         return client.replyMessage(replyToken, detail);
       }
       
@@ -769,21 +769,21 @@ async function handleEvent(event) {
     });
   }
 
-  // 礁溪早餐查詢（優先處理）
+  // 礁溪早餐查詢
   if (userMessage.includes('礁溪早餐')) {
     await handleJiaoxiBreakfastQuery(userMessage, event.replyToken);
     return;
   }
 
-  // 午餐查詢
-  if (userMessage.includes('午餐')) {
-    await handleLunchQuery(userMessage, event.replyToken);
+  // 礁溪午餐查詢
+  if (userMessage.includes('礁溪午餐')) {
+    await handleJiaoxiLunchQuery(userMessage, event.replyToken);
     return;
   }
   
-  // 晚餐查詢
-  if (userMessage.includes('晚餐')) {
-    await handleDinnerQuery(userMessage, event.replyToken);
+  // 礁溪晚餐查詢
+  if (userMessage.includes('礁溪晚餐')) {
+    await handleJiaoxiDinnerQuery(userMessage, event.replyToken);
     return;
   }
 
@@ -810,7 +810,7 @@ async function handleEvent(event) {
   // 預設回應
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「午餐」查詢礁溪午餐店\n🍽️ 「晚餐」查詢礁溪晚餐店\n🔍 「礁溪早餐 酷克伊早餐」搜尋特定早餐店\n🔍 「午餐 甕窯雞」搜尋午餐特定店家\n🔍 「晚餐 甕窯雞」搜尋晚餐特定店家\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n🔍 「礁溪早餐 酷克伊早餐」搜尋特定店家\n🔍 「礁溪午餐 甕窯雞」搜尋午餐店家\n🔍 「礁溪晚餐 甕窯雞」搜尋晚餐店家\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
@@ -831,8 +831,8 @@ app.listen(PORT, () => {
   console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
   console.log(`Webhook URL: https://line-bot-agjf.onrender.com/webhook`);
   console.log(`礁溪早餐店資料庫已載入，共 ${jiaoxiBreakfastData.getJiaoxiBreakfastShopsCount()} 間店家`);
-  console.log(`午餐店資料庫已載入，共 ${lunchData.getLunchShopsCount()} 間店家`);
-  console.log(`晚餐店資料庫已載入，共 ${dinnerData.getDinnerShopsCount()} 間店家`);
+  console.log(`礁溪午餐店資料庫已載入，共 ${jiaoxiLunchData.getJiaoxiLunchShopsCount()} 間店家`);
+  console.log(`礁溪晚餐店資料庫已載入，共 ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間店家`);
 });
 
 module.exports = app;
