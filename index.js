@@ -22,6 +22,9 @@ const lineConfig = {
 // 初始化 Line 客戶端
 const client = new line.Client(lineConfig);
 
+// 儲存使用者的查詢狀態（用於分頁）
+const userSessions = new Map(); // key: userId, value: { type, shops, page }
+
 // ==================== 工具函數 ====================
 
 /**
@@ -569,20 +572,133 @@ async function getDebugInfo() {
   }
 }
 
+// ==================== 分頁輔助函數 ====================
+
+/**
+ * 格式化店家訊息（支援分頁）
+ * @param {Array} shops - 店家陣列
+ * @param {number} page - 目前頁碼（從1開始）
+ * @param {string} mealType - 餐別（早餐/午餐/晚餐）
+ * @returns {string} 格式化的訊息
+ */
+function formatShopMessageWithPagination(shops, page, mealType) {
+  const itemsPerPage = 30;
+  const startIndex = (page - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pageShops = shops.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(shops.length / itemsPerPage);
+  
+  const emoji = mealType === '早餐' ? '🍳' : (mealType === '午餐' ? '🍱' : '🍽️');
+  
+  let message = `${emoji} 礁溪${mealType}店列表 (第${page}/${totalPages}頁)\n`;
+  message += '━━━━━━━━━━━━\n\n';
+  
+  pageShops.forEach((shop, index) => {
+    const globalIndex = startIndex + index + 1;
+    message += `${globalIndex}. ${shop.name}\n`;
+  });
+  
+  message += `\n📝 顯示 ${startIndex + 1}-${Math.min(endIndex, shops.length)} / 共 ${shops.length} 間店家\n`;
+  message += '━━━━━━━━━━━━\n';
+  
+  // 分頁控制說明
+  if (totalPages > 1) {
+    if (page > 1 && page < totalPages) {
+      message += `📖 輸入「${mealType}上一頁」或「${mealType}下一頁」切換\n`;
+    } else if (page === 1 && totalPages > 1) {
+      message += `📖 輸入「${mealType}下一頁」查看更多\n`;
+    } else if (page === totalPages && totalPages > 1) {
+      message += `📖 輸入「${mealType}上一頁」返回\n`;
+    }
+  }
+  
+  message += `💡 輸入「礁溪${mealType} 店名」查看詳細資訊\n`;
+  message += `🔍 例如：礁溪${mealType} 甕窯雞`;
+  
+  return message;
+}
+
 // ==================== 查詢處理函數 ====================
 
 /**
  * 處理礁溪早餐店查詢
  */
-async function handleJiaoxiBreakfastQuery(userMessage, replyToken) {
-  // 如果只輸入「礁溪早餐」，顯示所有店家列表
+async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
+  // 如果只輸入「礁溪早餐」，顯示所有店家列表（第一頁）
   if (userMessage === '礁溪早餐') {
     const allShops = jiaoxiBreakfastData.getAllJiaoxiBreakfastShops();
-    const textMessage = jiaoxiBreakfastData.formatJiaoxiBreakfastMessage(allShops);
+    
+    // 儲存使用者狀態
+    userSessions.set(userId, {
+      type: 'breakfast',
+      shops: allShops,
+      page: 1
+    });
+    
+    const textMessage = formatShopMessageWithPagination(allShops, 1, '早餐');
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
+  }
+  
+  // 處理「下一頁」指令
+  if (userMessage === '早餐下一頁') {
+    const session = userSessions.get(userId);
+    if (session && session.type === 'breakfast' && session.shops) {
+      const totalPages = Math.ceil(session.shops.length / 30);
+      const nextPage = session.page + 1;
+      
+      if (nextPage <= totalPages) {
+        session.page = nextPage;
+        userSessions.set(userId, session);
+        
+        const textMessage = formatShopMessageWithPagination(session.shops, nextPage, '早餐');
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: textMessage
+        });
+      } else {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: '📄 已經是最後一頁了！\n\n💡 輸入「礁溪早餐」重新查看'
+        });
+      }
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: '🔍 請先輸入「礁溪早餐」開始查詢'
+      });
+    }
+  }
+  
+  // 處理「上一頁」指令
+  if (userMessage === '早餐上一頁') {
+    const session = userSessions.get(userId);
+    if (session && session.type === 'breakfast' && session.shops) {
+      const prevPage = session.page - 1;
+      
+      if (prevPage >= 1) {
+        session.page = prevPage;
+        userSessions.set(userId, session);
+        
+        const textMessage = formatShopMessageWithPagination(session.shops, prevPage, '早餐');
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: textMessage
+        });
+      } else {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: '📄 已經是第一頁了！\n\n💡 輸入「早餐下一頁」查看更多'
+        });
+      }
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: '🔍 請先輸入「礁溪早餐」開始查詢'
+      });
+    }
   }
   
   // 如果輸入「礁溪早餐 店名」，進行搜尋
@@ -612,17 +728,17 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken) {
         return client.replyMessage(replyToken, detail);
       }
       
-      // 多筆結果，顯示列表
-      let message = `🔍 找到 ${results.length} 間相關店家\n`;
-      message += `━━━━━━━━━━━━\n\n`;
-      results.forEach((shop, index) => {
-        message += `${index + 1}. ${shop.name}\n`;
+      // 多筆結果，顯示列表（支援分頁）
+      userSessions.set(userId, {
+        type: 'breakfast',
+        shops: results,
+        page: 1
       });
-      message += `\n💡 輸入完整店名查看詳細資訊`;
       
+      const textMessage = formatShopMessageWithPagination(results, 1, '早餐');
       return client.replyMessage(replyToken, {
         type: 'text',
-        text: message
+        text: textMessage
       });
     }
   }
@@ -633,15 +749,81 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken) {
 /**
  * 處理礁溪午餐店查詢
  */
-async function handleJiaoxiLunchQuery(userMessage, replyToken) {
-  // 如果只輸入「礁溪午餐」，顯示所有店家列表
+async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
+  // 如果只輸入「礁溪午餐」，顯示所有店家列表（第一頁）
   if (userMessage === '礁溪午餐') {
     const allShops = jiaoxiLunchData.getAllJiaoxiLunchShops();
-    const textMessage = jiaoxiLunchData.formatJiaoxiLunchMessage(allShops);
+    
+    userSessions.set(userId, {
+      type: 'lunch',
+      shops: allShops,
+      page: 1
+    });
+    
+    const textMessage = formatShopMessageWithPagination(allShops, 1, '午餐');
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
+  }
+  
+  // 處理「下一頁」指令
+  if (userMessage === '午餐下一頁') {
+    const session = userSessions.get(userId);
+    if (session && session.type === 'lunch' && session.shops) {
+      const totalPages = Math.ceil(session.shops.length / 30);
+      const nextPage = session.page + 1;
+      
+      if (nextPage <= totalPages) {
+        session.page = nextPage;
+        userSessions.set(userId, session);
+        
+        const textMessage = formatShopMessageWithPagination(session.shops, nextPage, '午餐');
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: textMessage
+        });
+      } else {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: '📄 已經是最後一頁了！\n\n💡 輸入「礁溪午餐」重新查看'
+        });
+      }
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: '🔍 請先輸入「礁溪午餐」開始查詢'
+      });
+    }
+  }
+  
+  // 處理「上一頁」指令
+  if (userMessage === '午餐上一頁') {
+    const session = userSessions.get(userId);
+    if (session && session.type === 'lunch' && session.shops) {
+      const prevPage = session.page - 1;
+      
+      if (prevPage >= 1) {
+        session.page = prevPage;
+        userSessions.set(userId, session);
+        
+        const textMessage = formatShopMessageWithPagination(session.shops, prevPage, '午餐');
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: textMessage
+        });
+      } else {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: '📄 已經是第一頁了！\n\n💡 輸入「午餐下一頁」查看更多'
+        });
+      }
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: '🔍 請先輸入「礁溪午餐」開始查詢'
+      });
+    }
   }
   
   // 如果輸入「礁溪午餐 店名」，進行搜尋
@@ -649,13 +831,11 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken) {
     const keyword = userMessage.replace('礁溪午餐', '').trim();
     
     if (keyword) {
-      // 先嘗試直接獲取店家詳細資訊
       const shopDetail = jiaoxiLunchData.getJiaoxiLunchShopDetailWithImage(keyword);
       if (shopDetail) {
         return client.replyMessage(replyToken, shopDetail);
       }
       
-      // 如果找不到完全匹配，進行模糊搜尋
       const results = jiaoxiLunchData.searchJiaoxiLunchShops(keyword);
       
       if (results.length === 0) {
@@ -666,22 +846,20 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken) {
       }
       
       if (results.length === 1) {
-        // 只有一筆結果，直接顯示詳細資訊
         const detail = jiaoxiLunchData.getJiaoxiLunchShopDetailWithImage(results[0].name);
         return client.replyMessage(replyToken, detail);
       }
       
-      // 多筆結果，顯示列表
-      let message = `🔍 找到 ${results.length} 間相關店家\n`;
-      message += `━━━━━━━━━━━━\n\n`;
-      results.forEach((shop, index) => {
-        message += `${index + 1}. ${shop.name}\n`;
+      userSessions.set(userId, {
+        type: 'lunch',
+        shops: results,
+        page: 1
       });
-      message += `\n💡 輸入完整店名查看詳細資訊`;
       
+      const textMessage = formatShopMessageWithPagination(results, 1, '午餐');
       return client.replyMessage(replyToken, {
         type: 'text',
-        text: message
+        text: textMessage
       });
     }
   }
@@ -692,15 +870,81 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken) {
 /**
  * 處理礁溪晚餐店查詢
  */
-async function handleJiaoxiDinnerQuery(userMessage, replyToken) {
-  // 如果只輸入「礁溪晚餐」，顯示所有店家列表
+async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
+  // 如果只輸入「礁溪晚餐」，顯示所有店家列表（第一頁）
   if (userMessage === '礁溪晚餐') {
     const allShops = jiaoxiDinnerData.getAllJiaoxiDinnerShops();
-    const textMessage = jiaoxiDinnerData.formatJiaoxiDinnerMessage(allShops);
+    
+    userSessions.set(userId, {
+      type: 'dinner',
+      shops: allShops,
+      page: 1
+    });
+    
+    const textMessage = formatShopMessageWithPagination(allShops, 1, '晚餐');
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
+  }
+  
+  // 處理「下一頁」指令
+  if (userMessage === '晚餐下一頁') {
+    const session = userSessions.get(userId);
+    if (session && session.type === 'dinner' && session.shops) {
+      const totalPages = Math.ceil(session.shops.length / 30);
+      const nextPage = session.page + 1;
+      
+      if (nextPage <= totalPages) {
+        session.page = nextPage;
+        userSessions.set(userId, session);
+        
+        const textMessage = formatShopMessageWithPagination(session.shops, nextPage, '晚餐');
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: textMessage
+        });
+      } else {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: '📄 已經是最後一頁了！\n\n💡 輸入「礁溪晚餐」重新查看'
+        });
+      }
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: '🔍 請先輸入「礁溪晚餐」開始查詢'
+      });
+    }
+  }
+  
+  // 處理「上一頁」指令
+  if (userMessage === '晚餐上一頁') {
+    const session = userSessions.get(userId);
+    if (session && session.type === 'dinner' && session.shops) {
+      const prevPage = session.page - 1;
+      
+      if (prevPage >= 1) {
+        session.page = prevPage;
+        userSessions.set(userId, session);
+        
+        const textMessage = formatShopMessageWithPagination(session.shops, prevPage, '晚餐');
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: textMessage
+        });
+      } else {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: '📄 已經是第一頁了！\n\n💡 輸入「晚餐下一頁」查看更多'
+        });
+      }
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: '🔍 請先輸入「礁溪晚餐」開始查詢'
+      });
+    }
   }
   
   // 如果輸入「礁溪晚餐 店名」，進行搜尋
@@ -708,13 +952,11 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken) {
     const keyword = userMessage.replace('礁溪晚餐', '').trim();
     
     if (keyword) {
-      // 先嘗試直接獲取店家詳細資訊
       const shopDetail = jiaoxiDinnerData.getJiaoxiDinnerShopDetailWithImage(keyword);
       if (shopDetail) {
         return client.replyMessage(replyToken, shopDetail);
       }
       
-      // 如果找不到完全匹配，進行模糊搜尋
       const results = jiaoxiDinnerData.searchJiaoxiDinnerShops(keyword);
       
       if (results.length === 0) {
@@ -725,22 +967,20 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken) {
       }
       
       if (results.length === 1) {
-        // 只有一筆結果，直接顯示詳細資訊
         const detail = jiaoxiDinnerData.getJiaoxiDinnerShopDetailWithImage(results[0].name);
         return client.replyMessage(replyToken, detail);
       }
       
-      // 多筆結果，顯示列表
-      let message = `🔍 找到 ${results.length} 間相關店家\n`;
-      message += `━━━━━━━━━━━━\n\n`;
-      results.forEach((shop, index) => {
-        message += `${index + 1}. ${shop.name}\n`;
+      userSessions.set(userId, {
+        type: 'dinner',
+        shops: results,
+        page: 1
       });
-      message += `\n💡 輸入完整店名查看詳細資訊`;
       
+      const textMessage = formatShopMessageWithPagination(results, 1, '晚餐');
       return client.replyMessage(replyToken, {
         type: 'text',
-        text: message
+        text: textMessage
       });
     }
   }
@@ -759,6 +999,7 @@ async function handleEvent(event) {
   }
 
   const userMessage = event.message.text;
+  const userId = event.source.userId;
 
   // 除錯指令
   if (userMessage === '!debug') {
@@ -769,21 +1010,21 @@ async function handleEvent(event) {
     });
   }
 
-  // 礁溪早餐查詢
-  if (userMessage.includes('礁溪早餐')) {
-    await handleJiaoxiBreakfastQuery(userMessage, event.replyToken);
+  // 礁溪早餐查詢（包含分頁指令）
+  if (userMessage.includes('礁溪早餐') || userMessage === '早餐下一頁' || userMessage === '早餐上一頁') {
+    await handleJiaoxiBreakfastQuery(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 礁溪午餐查詢
-  if (userMessage.includes('礁溪午餐')) {
-    await handleJiaoxiLunchQuery(userMessage, event.replyToken);
+  // 礁溪午餐查詢（包含分頁指令）
+  if (userMessage.includes('礁溪午餐') || userMessage === '午餐下一頁' || userMessage === '午餐上一頁') {
+    await handleJiaoxiLunchQuery(userMessage, event.replyToken, userId);
     return;
   }
   
-  // 礁溪晚餐查詢
-  if (userMessage.includes('礁溪晚餐')) {
-    await handleJiaoxiDinnerQuery(userMessage, event.replyToken);
+  // 礁溪晚餐查詢（包含分頁指令）
+  if (userMessage.includes('礁溪晚餐') || userMessage === '晚餐下一頁' || userMessage === '晚餐上一頁') {
+    await handleJiaoxiDinnerQuery(userMessage, event.replyToken, userId);
     return;
   }
 
@@ -810,7 +1051,7 @@ async function handleEvent(event) {
   // 預設回應
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n🔍 「礁溪早餐 酷克伊早餐」搜尋特定店家\n🔍 「礁溪午餐 甕窯雞」搜尋午餐店家\n🔍 「礁溪晚餐 甕窯雞」搜尋晚餐店家\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n\n📖 分頁功能：\n   「早餐下一頁」「早餐上一頁」\n   「午餐下一頁」「午餐上一頁」\n   「晚餐下一頁」「晚餐上一頁」\n\n🔍 搜尋特定店家：\n   「礁溪早餐 酷克伊早餐」\n   「礁溪午餐 甕窯雞」\n   「礁溪晚餐 甕窯雞」\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
