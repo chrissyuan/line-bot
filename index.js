@@ -557,8 +557,8 @@ async function getDebugInfo() {
     debugText += `店家總數: ${lunchData.getLunchShopsCount()} 間\n`;
 
     // 加入晚餐店統計資訊
-debugText += `\n🍽️ 晚餐店資料庫\n`;
-debugText += `店家總數: ${dinnerData.getDinnerShopsCount()} 間\n`;
+    debugText += `\n🍽️ 晚餐店資料庫\n`;
+    debugText += `店家總數: ${dinnerData.getDinnerShopsCount()} 間\n`;
 
     if (debugText.length > 4900) {
       debugText = debugText.substring(0, 4900) + '...';
@@ -687,7 +687,12 @@ async function handleLunchQuery(userMessage, replyToken) {
         text: message
       });
     }
-    /**
+  }
+  
+  return null;
+}
+
+/**
  * 處理晚餐店查詢
  */
 async function handleDinnerQuery(userMessage, replyToken) {
@@ -745,10 +750,6 @@ async function handleDinnerQuery(userMessage, replyToken) {
   
   return null;
 }
-  }
-  
-  return null;
-}
 
 // ==================== Line Bot 事件處理 ====================
 
@@ -777,11 +778,11 @@ async function handleEvent(event) {
     return;
   }
   
-  // 晚餐查詢（新增）
-if (userMessage.includes('晚餐')) {
-  await handleDinnerQuery(userMessage, event.replyToken);
-  return;
-}
+  // 晚餐查詢
+  if (userMessage.includes('晚餐')) {
+    await handleDinnerQuery(userMessage, event.replyToken);
+    return;
+  }
 
   // 早餐店查詢
   if (userMessage.includes('早餐')) {
@@ -810,10 +811,10 @@ if (userMessage.includes('晚餐')) {
   }
 
   // 預設回應
-return client.replyMessage(event.replyToken, {
-  type: 'text',
-  text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「早餐」查詢礁溪早餐店\n🍱 「午餐」查詢礁溪午餐店\n🍽️ 「晚餐」查詢礁溪晚餐店\n🔍 「早餐 鄉村堡」搜尋早餐特定店家\n🔍 「午餐 甕窯雞」搜尋午餐特定店家\n🔍 「晚餐 甕窯雞」搜尋晚餐特定店家\n🛠️ 「!debug」查看API除錯資訊'
-});
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「早餐」查詢礁溪早餐店\n🍱 「午餐」查詢礁溪午餐店\n🍽️ 「晚餐」查詢礁溪晚餐店\n🔍 「早餐 鄉村堡」搜尋早餐特定店家\n🔍 「午餐 甕窯雞」搜尋午餐特定店家\n🔍 「晚餐 甕窯雞」搜尋晚餐特定店家\n🛠️ 「!debug」查看API除錯資訊'
+  });
 }
 
 // ==================== 伺服器設定 ====================
