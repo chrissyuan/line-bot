@@ -543,7 +543,7 @@ const breakfastShops = [
 ];
 
 // 根據關鍵字搜尋早餐店（只搜尋店名）
-function searchBreakfastShops(keyword) {
+function searchJiaoxiBreakfastShops(keyword) {
   if (!keyword) return breakfastShops;
   
   const lowerKeyword = keyword.toLowerCase();
@@ -553,17 +553,17 @@ function searchBreakfastShops(keyword) {
 }
 
 // 取得所有早餐店
-function getAllBreakfastShops() {
+function getAllJiaoxiBreakfastShops() {
   return breakfastShops;
 }
 
 // 取得早餐店數量
-function getBreakfastShopsCount() {
+function getJiaoxiBreakfastShopsCount() {
   return breakfastShops.length;
 }
 
 // 獲取單一店家詳細資訊（純文字版）
-function getShopDetail(shopName) {
+function getJiaoxiBreakfastShopDetail(shopName) {
   const shop = breakfastShops.find(s => 
     s.name.includes(shopName) || 
     shopName.includes(s.name)
@@ -575,13 +575,14 @@ function getShopDetail(shopName) {
   detail += `━━━━━━━━━━━━\n`;
   detail += `📍 ${shop.address}\n`;
   detail += `🕐 ${shop.hours}\n`;
+  if (shop.phone) detail += `📞 ${shop.phone}\n`;
   detail += `🔗 ${shop.mapLink}`;
   
   return detail;
 }
 
-// 獲取單一店家詳細資訊（包含圖片）
-function getShopDetailWithImage(shopName) {
+// 獲取單一店家詳細資訊（包含圖片）- 回傳 Line 訊息格式
+function getJiaoxiBreakfastShopDetailWithImage(shopName) {
   const shop = breakfastShops.find(s => 
     s.name.includes(shopName) || 
     shopName.includes(s.name)
@@ -589,58 +590,139 @@ function getShopDetailWithImage(shopName) {
   
   if (!shop) return null;
   
-  // 如果有圖片網址，回傳包含圖片的物件
+  const textMessage = `🍳 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`;
+  
+  // 如果有圖片網址，回傳包含圖片的訊息
   if (shop.imageUrl) {
     return {
-      type: 'image',
-      originalContentUrl: shop.imageUrl,
-      previewImageUrl: shop.imageUrl,
-      textDetail: `🍳 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+      type: 'flex',
+      altText: shop.name,
+      contents: {
+        type: 'bubble',
+        hero: {
+          type: 'image',
+          url: shop.imageUrl,
+          size: 'full',
+          aspectRatio: '20:13',
+          aspectMode: 'cover'
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: shop.name,
+              weight: 'bold',
+              size: 'xl'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'lg',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '📍',
+                      size: 'sm'
+                    },
+                    {
+                      type: 'text',
+                      text: shop.address,
+                      size: 'sm',
+                      wrap: true,
+                      flex: 1
+                    }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '🕐',
+                      size: 'sm'
+                    },
+                    {
+                      type: 'text',
+                      text: shop.hours,
+                      size: 'sm',
+                      wrap: true,
+                      flex: 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'link',
+              height: 'sm',
+              action: {
+                type: 'uri',
+                label: '查看地圖',
+                uri: shop.mapLink
+              }
+            }
+          ]
+        }
+      }
     };
   }
   
   // 沒有圖片則回傳純文字
   return {
     type: 'text',
-    text: `🍳 ${shop.name}\n━━━━━━━━━━━━\n📍 ${shop.address}\n🕐 ${shop.hours}\n🔗 ${shop.mapLink}`
+    text: textMessage
   };
 }
 
-// 格式化早餐店訊息（簡潔版）- 顯示30間
-function formatBreakfastMessage(shops, limit = 30) {
+// 格式化早餐店訊息
+function formatJiaoxiBreakfastMessage(shops) {
   if (!shops || shops.length === 0) {
-    return '🍳 找不到相關的早餐店\n\n💡 提示：可以試試搜尋「早餐」來查看所有店家';
+    return '🍳 找不到相關的早餐店\n\n💡 提示：輸入「礁溪早餐」查看所有店家';
   }
 
-  let message = '🍳 礁溪早餐店推薦\n';
+  let message = '🍳 礁溪早餐店列表\n';
   message += '━━━━━━━━━━━━\n\n';
   
-  const displayShops = shops.slice(0, limit);
+  const displayShops = shops.slice(0, 30);
   
-  // 簡潔顯示：只顯示編號和店名
   displayShops.forEach((shop, index) => {
     message += `${index + 1}. ${shop.name}\n`;
   });
   
-  if (shops.length > limit) {
-    message += `\n📊 還有 ${shops.length - limit} 間店家\n`;
-    message += `💡 輸入「早餐 店名」搜尋特定店家`;
+  if (shops.length > 30) {
+    message += `\n📊 還有 ${shops.length - 30} 間店家\n`;
+    message += `💡 輸入「礁溪早餐 店名」搜尋特定店家`;
   } else {
     message += `\n📝 共 ${shops.length} 間早餐店\n`;
-    message += `💡 輸入「早餐 店名」查看詳細資訊`;
+    message += `💡 輸入「礁溪早餐 店名」查看詳細資訊`;
   }
   
-  message += `\n━━━━━━━━━━━━\n🔍 例如：早餐 柯氏蔥油餅`;
+  message += `\n━━━━━━━━━━━━\n🔍 例如：礁溪早餐 柯氏蔥油餅`;
   
   return message;
 }
 
 module.exports = {
-  breakfastShops,
-  searchBreakfastShops,
-  getAllBreakfastShops,
-  getBreakfastShopsCount,
-  getShopDetail,
-  getShopDetailWithImage,
-  formatBreakfastMessage
+  getAllJiaoxiBreakfastShops,
+  getJiaoxiBreakfastShopsCount,
+  searchJiaoxiBreakfastShops,
+  getJiaoxiBreakfastShopDetail: getJiaoxiBreakfastShopDetail,
+  getJiaoxiBreakfastShopDetailWithImage,
+  formatJiaoxiBreakfastMessage
 };
