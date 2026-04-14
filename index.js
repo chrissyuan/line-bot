@@ -3,9 +3,9 @@ const axios = require('axios');
 const line = require('@line/bot-sdk');
 
 // 導入資料 - 新的路徑結構
-const jiaoxiBreakfastData = require('./data/Jiaoxi/breakfastShop');
-const jiaoxiLunchData = require('./data/Jiaoxi/lunchShop');
-const jiaoxiDinnerData = require('./data/Jiaoxi/dinnerShop');
+const jiaoxiBreakfastData = require('./data/Jiaoxi/breakfastShops');
+const jiaoxiLunchData = require('./data/Jiaoxi/lunchShops');
+const jiaoxiDinnerData = require('./data/Jiaoxi/dinnerShops');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
