@@ -6,6 +6,8 @@ const line = require('@line/bot-sdk');
 const breakfastData = require('./data/breakfastShops');
 // 導入午餐店資料
 const lunchData = require('./data/lunchShops');
+// 導入晚餐店資料（新增）
+const dinnerData = require('./data/dinnerShops');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -554,6 +556,10 @@ async function getDebugInfo() {
     debugText += `\n🍱 午餐店資料庫\n`;
     debugText += `店家總數: ${lunchData.getLunchShopsCount()} 間\n`;
 
+    // 加入晚餐店統計資訊
+debugText += `\n🍽️ 晚餐店資料庫\n`;
+debugText += `店家總數: ${dinnerData.getDinnerShopsCount()} 間\n`;
+
     if (debugText.length > 4900) {
       debugText = debugText.substring(0, 4900) + '...';
     }
@@ -681,6 +687,64 @@ async function handleLunchQuery(userMessage, replyToken) {
         text: message
       });
     }
+    /**
+ * 處理晚餐店查詢
+ */
+async function handleDinnerQuery(userMessage, replyToken) {
+  // 如果只輸入「晚餐」，顯示所有店家列表
+  if (userMessage === '晚餐') {
+    const allShops = dinnerData.getAllDinnerShops();
+    const textMessage = dinnerData.formatDinnerMessage(allShops);
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: textMessage
+    });
+  }
+  
+  // 如果輸入「晚餐 店名」，進行搜尋
+  if (userMessage.includes('晚餐')) {
+    const keyword = userMessage.replace('晚餐', '').trim();
+    
+    if (keyword) {
+      // 先嘗試直接獲取店家詳細資訊
+      const shopDetail = dinnerData.getDinnerShopDetailWithImage(keyword);
+      if (shopDetail) {
+        return client.replyMessage(replyToken, shopDetail);
+      }
+      
+      // 如果找不到完全匹配，進行模糊搜尋
+      const results = dinnerData.searchDinnerShops(keyword);
+      
+      if (results.length === 0) {
+        return client.replyMessage(replyToken, {
+          type: 'text',
+          text: `🔍 找不到「${keyword}」相關的晚餐店\n\n💡 提示：輸入「晚餐」查看所有店家列表`
+        });
+      }
+      
+      if (results.length === 1) {
+        // 只有一筆結果，直接顯示詳細資訊
+        const detail = dinnerData.getDinnerShopDetailWithImage(results[0].name);
+        return client.replyMessage(replyToken, detail);
+      }
+      
+      // 多筆結果，顯示列表
+      let message = `🔍 找到 ${results.length} 間相關店家\n`;
+      message += `━━━━━━━━━━━━\n\n`;
+      results.forEach((shop, index) => {
+        message += `${index + 1}. ${shop.name}\n`;
+      });
+      message += `\n💡 輸入完整店名查看詳細資訊`;
+      
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: message
+      });
+    }
+  }
+  
+  return null;
+}
   }
   
   return null;
@@ -712,6 +776,12 @@ async function handleEvent(event) {
     await handleLunchQuery(userMessage, event.replyToken);
     return;
   }
+  
+  // 晚餐查詢（新增）
+if (userMessage.includes('晚餐')) {
+  await handleDinnerQuery(userMessage, event.replyToken);
+  return;
+}
 
   // 早餐店查詢
   if (userMessage.includes('早餐')) {
@@ -740,10 +810,10 @@ async function handleEvent(event) {
   }
 
   // 預設回應
-  return client.replyMessage(event.replyToken, {
-    type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「早餐」查詢礁溪早餐店\n🍱 「午餐」查詢礁溪午餐店\n🔍 「早餐 鄉村堡」搜尋早餐特定店家\n🔍 「午餐 甕窯雞」搜尋午餐特定店家\n🛠️ 「!debug」查看API除錯資訊'
-  });
+return client.replyMessage(event.replyToken, {
+  type: 'text',
+  text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「早餐」查詢礁溪早餐店\n🍱 「午餐」查詢礁溪午餐店\n🍽️ 「晚餐」查詢礁溪晚餐店\n🔍 「早餐 鄉村堡」搜尋早餐特定店家\n🔍 「午餐 甕窯雞」搜尋午餐特定店家\n🔍 「晚餐 甕窯雞」搜尋晚餐特定店家\n🛠️ 「!debug」查看API除錯資訊'
+});
 }
 
 // ==================== 伺服器設定 ====================
