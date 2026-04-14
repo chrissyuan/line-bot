@@ -834,6 +834,7 @@ app.listen(PORT, () => {
   console.log(`Webhook URL: https://line-bot-agjf.onrender.com/webhook`);
   console.log(`早餐店資料庫已載入，共 ${breakfastData.getBreakfastShopsCount()} 間店家`);
   console.log(`午餐店資料庫已載入，共 ${lunchData.getLunchShopsCount()} 間店家`);
+  console.log(`晚餐店資料庫已載入，共 ${dinnerData.getDinnerShopsCount()} 間店家`);
 });
 
 module.exports = app;
