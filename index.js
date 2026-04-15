@@ -620,8 +620,8 @@ function createShopDetailFlexMessage(shop, mealType) {
   const emoji = mealType === '早餐' ? '🍳' : (mealType === '午餐' ? '🍱' : '🍽️');
   
   // 將地址轉換為 Google Maps 導航連結（使用 encodeURIComponent 確保中文正常）
-  const encodedAddress = encodeURIComponent(shop.address);
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+ const query = encodeURIComponent(`${shop.name} ${shop.address}`);
+const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
   
   // 建立 body 內容
   const bodyContents = [
