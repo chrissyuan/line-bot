@@ -673,15 +673,15 @@ function createShopDetailFlexMessage(shop, mealType) {
   // 建立 footer 按鈕 - 直接使用 Google Maps 導航連結
   const footerContents = [
     {
-      type: 'button',
-      style: 'primary',
-      height: 'sm',
-      action: {
-        type: 'uri',
-        label: '🗺️ 開啟 Google 地圖導航',
-        uri: mapUrl
-      }
-    }
+  type: 'button',
+  style: 'secondary',
+  height: 'sm',
+  action: {
+    type: 'uri',
+    label: '📋 查看完整店家資訊',
+    uri: mapUrl
+  }
+}
   ];
   
   // 建立 Flex Message
