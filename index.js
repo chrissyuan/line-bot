@@ -23,7 +23,7 @@ const lineConfig = {
 const client = new line.Client(lineConfig);
 
 // 儲存使用者的查詢狀態（用於分頁）
-const userSessions = new Map(); // key: userId, value: { type, shops, page }
+const userSessions = new Map(); // key: userId, value: { type, region, shops, page }
 
 // ==================== 工具函數 ====================
 
@@ -579,9 +579,10 @@ async function getDebugInfo() {
  * @param {Array} shops - 店家陣列
  * @param {number} page - 目前頁碼（從1開始）
  * @param {string} mealType - 餐別（早餐/午餐/晚餐）
+ * @param {string} region - 地區（礁溪/宜蘭等）
  * @returns {string} 格式化的訊息
  */
-function formatShopMessageWithPagination(shops, page, mealType) {
+function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪') {
   const itemsPerPage = 30;
   const startIndex = (page - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -590,7 +591,7 @@ function formatShopMessageWithPagination(shops, page, mealType) {
   
   const emoji = mealType === '早餐' ? '🍳' : (mealType === '午餐' ? '🍱' : '🍽️');
   
-  let message = `${emoji} 礁溪${mealType}店列表 (第${page}/${totalPages}頁)\n`;
+  let message = `${emoji} ${region}${mealType}店列表 (第${page}/${totalPages}頁)\n`;
   message += '━━━━━━━━━━━━\n\n';
   
   pageShops.forEach((shop, index) => {
@@ -604,16 +605,16 @@ function formatShopMessageWithPagination(shops, page, mealType) {
   // 分頁控制說明
   if (totalPages > 1) {
     if (page > 1 && page < totalPages) {
-      message += `📖 輸入「${mealType}上一頁」或「${mealType}下一頁」切換\n`;
+      message += `📖 輸入「上一頁」或「下一頁」切換\n`;
     } else if (page === 1 && totalPages > 1) {
-      message += `📖 輸入「${mealType}下一頁」查看更多\n`;
+      message += `📖 輸入「下一頁」查看更多\n`;
     } else if (page === totalPages && totalPages > 1) {
-      message += `📖 輸入「${mealType}上一頁」返回\n`;
+      message += `📖 輸入「上一頁」返回\n`;
     }
   }
   
-  message += `💡 輸入「礁溪${mealType} 店名」查看詳細資訊\n`;
-  message += `🔍 例如：礁溪${mealType} 甕窯雞`;
+  message += `💡 輸入「${region}${mealType} 店名」查看詳細資訊\n`;
+  message += `🔍 例如：${region}${mealType} 甕窯雞`;
   
   return message;
 }
@@ -631,74 +632,16 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
     // 儲存使用者狀態
     userSessions.set(userId, {
       type: 'breakfast',
+      region: '礁溪',
       shops: allShops,
       page: 1
     });
     
-    const textMessage = formatShopMessageWithPagination(allShops, 1, '早餐');
+    const textMessage = formatShopMessageWithPagination(allShops, 1, '早餐', '礁溪');
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
-  }
-  
-  // 處理「下一頁」指令
-  if (userMessage === '早餐下一頁') {
-    const session = userSessions.get(userId);
-    if (session && session.type === 'breakfast' && session.shops) {
-      const totalPages = Math.ceil(session.shops.length / 30);
-      const nextPage = session.page + 1;
-      
-      if (nextPage <= totalPages) {
-        session.page = nextPage;
-        userSessions.set(userId, session);
-        
-        const textMessage = formatShopMessageWithPagination(session.shops, nextPage, '早餐');
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: textMessage
-        });
-      } else {
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: '📄 已經是最後一頁了！\n\n💡 輸入「礁溪早餐」重新查看'
-        });
-      }
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: '🔍 請先輸入「礁溪早餐」開始查詢'
-      });
-    }
-  }
-  
-  // 處理「上一頁」指令
-  if (userMessage === '早餐上一頁') {
-    const session = userSessions.get(userId);
-    if (session && session.type === 'breakfast' && session.shops) {
-      const prevPage = session.page - 1;
-      
-      if (prevPage >= 1) {
-        session.page = prevPage;
-        userSessions.set(userId, session);
-        
-        const textMessage = formatShopMessageWithPagination(session.shops, prevPage, '早餐');
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: textMessage
-        });
-      } else {
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: '📄 已經是第一頁了！\n\n💡 輸入「早餐下一頁」查看更多'
-        });
-      }
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: '🔍 請先輸入「礁溪早餐」開始查詢'
-      });
-    }
   }
   
   // 如果輸入「礁溪早餐 店名」，進行搜尋
@@ -731,11 +674,12 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
       // 多筆結果，顯示列表（支援分頁）
       userSessions.set(userId, {
         type: 'breakfast',
+        region: '礁溪',
         shops: results,
         page: 1
       });
       
-      const textMessage = formatShopMessageWithPagination(results, 1, '早餐');
+      const textMessage = formatShopMessageWithPagination(results, 1, '早餐', '礁溪');
       return client.replyMessage(replyToken, {
         type: 'text',
         text: textMessage
@@ -756,74 +700,16 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
     
     userSessions.set(userId, {
       type: 'lunch',
+      region: '礁溪',
       shops: allShops,
       page: 1
     });
     
-    const textMessage = formatShopMessageWithPagination(allShops, 1, '午餐');
+    const textMessage = formatShopMessageWithPagination(allShops, 1, '午餐', '礁溪');
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
-  }
-  
-  // 處理「下一頁」指令
-  if (userMessage === '午餐下一頁') {
-    const session = userSessions.get(userId);
-    if (session && session.type === 'lunch' && session.shops) {
-      const totalPages = Math.ceil(session.shops.length / 30);
-      const nextPage = session.page + 1;
-      
-      if (nextPage <= totalPages) {
-        session.page = nextPage;
-        userSessions.set(userId, session);
-        
-        const textMessage = formatShopMessageWithPagination(session.shops, nextPage, '午餐');
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: textMessage
-        });
-      } else {
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: '📄 已經是最後一頁了！\n\n💡 輸入「礁溪午餐」重新查看'
-        });
-      }
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: '🔍 請先輸入「礁溪午餐」開始查詢'
-      });
-    }
-  }
-  
-  // 處理「上一頁」指令
-  if (userMessage === '午餐上一頁') {
-    const session = userSessions.get(userId);
-    if (session && session.type === 'lunch' && session.shops) {
-      const prevPage = session.page - 1;
-      
-      if (prevPage >= 1) {
-        session.page = prevPage;
-        userSessions.set(userId, session);
-        
-        const textMessage = formatShopMessageWithPagination(session.shops, prevPage, '午餐');
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: textMessage
-        });
-      } else {
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: '📄 已經是第一頁了！\n\n💡 輸入「午餐下一頁」查看更多'
-        });
-      }
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: '🔍 請先輸入「礁溪午餐」開始查詢'
-      });
-    }
   }
   
   // 如果輸入「礁溪午餐 店名」，進行搜尋
@@ -852,11 +738,12 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
       
       userSessions.set(userId, {
         type: 'lunch',
+        region: '礁溪',
         shops: results,
         page: 1
       });
       
-      const textMessage = formatShopMessageWithPagination(results, 1, '午餐');
+      const textMessage = formatShopMessageWithPagination(results, 1, '午餐', '礁溪');
       return client.replyMessage(replyToken, {
         type: 'text',
         text: textMessage
@@ -877,74 +764,16 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
     
     userSessions.set(userId, {
       type: 'dinner',
+      region: '礁溪',
       shops: allShops,
       page: 1
     });
     
-    const textMessage = formatShopMessageWithPagination(allShops, 1, '晚餐');
+    const textMessage = formatShopMessageWithPagination(allShops, 1, '晚餐', '礁溪');
     return client.replyMessage(replyToken, {
       type: 'text',
       text: textMessage
     });
-  }
-  
-  // 處理「下一頁」指令
-  if (userMessage === '晚餐下一頁') {
-    const session = userSessions.get(userId);
-    if (session && session.type === 'dinner' && session.shops) {
-      const totalPages = Math.ceil(session.shops.length / 30);
-      const nextPage = session.page + 1;
-      
-      if (nextPage <= totalPages) {
-        session.page = nextPage;
-        userSessions.set(userId, session);
-        
-        const textMessage = formatShopMessageWithPagination(session.shops, nextPage, '晚餐');
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: textMessage
-        });
-      } else {
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: '📄 已經是最後一頁了！\n\n💡 輸入「礁溪晚餐」重新查看'
-        });
-      }
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: '🔍 請先輸入「礁溪晚餐」開始查詢'
-      });
-    }
-  }
-  
-  // 處理「上一頁」指令
-  if (userMessage === '晚餐上一頁') {
-    const session = userSessions.get(userId);
-    if (session && session.type === 'dinner' && session.shops) {
-      const prevPage = session.page - 1;
-      
-      if (prevPage >= 1) {
-        session.page = prevPage;
-        userSessions.set(userId, session);
-        
-        const textMessage = formatShopMessageWithPagination(session.shops, prevPage, '晚餐');
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: textMessage
-        });
-      } else {
-        return client.replyMessage(replyToken, {
-          type: 'text',
-          text: '📄 已經是第一頁了！\n\n💡 輸入「晚餐下一頁」查看更多'
-        });
-      }
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: '🔍 請先輸入「礁溪晚餐」開始查詢'
-      });
-    }
   }
   
   // 如果輸入「礁溪晚餐 店名」，進行搜尋
@@ -973,14 +802,78 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
       
       userSessions.set(userId, {
         type: 'dinner',
+        region: '礁溪',
         shops: results,
         page: 1
       });
       
-      const textMessage = formatShopMessageWithPagination(results, 1, '晚餐');
+      const textMessage = formatShopMessageWithPagination(results, 1, '晚餐', '礁溪');
       return client.replyMessage(replyToken, {
         type: 'text',
         text: textMessage
+      });
+    }
+  }
+  
+  return null;
+}
+
+// ==================== 通用分頁處理函數 ====================
+
+/**
+ * 通用分頁處理函數
+ */
+async function handlePagination(userMessage, replyToken, userId) {
+  const session = userSessions.get(userId);
+  if (!session || !session.shops) {
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」或「礁溪晚餐」開始查詢'
+    });
+  }
+  
+  const { type, region, shops, page } = session;
+  let mealType = '';
+  if (type === 'breakfast') mealType = '早餐';
+  else if (type === 'lunch') mealType = '午餐';
+  else if (type === 'dinner') mealType = '晚餐';
+  
+  const totalPages = Math.ceil(shops.length / 30);
+  
+  // 處理下一頁
+  if (userMessage === '下一頁') {
+    const nextPage = page + 1;
+    if (nextPage <= totalPages) {
+      session.page = nextPage;
+      userSessions.set(userId, session);
+      const textMessage = formatShopMessageWithPagination(shops, nextPage, mealType, region);
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: textMessage
+      });
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: `📄 已經是最後一頁了！\n\n💡 輸入「${region}${mealType}」重新查看`
+      });
+    }
+  }
+  
+  // 處理上一頁
+  if (userMessage === '上一頁') {
+    const prevPage = page - 1;
+    if (prevPage >= 1) {
+      session.page = prevPage;
+      userSessions.set(userId, session);
+      const textMessage = formatShopMessageWithPagination(shops, prevPage, mealType, region);
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: textMessage
+      });
+    } else {
+      return client.replyMessage(replyToken, {
+        type: 'text',
+        text: `📄 已經是第一頁了！\n\n💡 輸入「${region}${mealType}」重新查看`
       });
     }
   }
@@ -1010,20 +903,26 @@ async function handleEvent(event) {
     });
   }
 
-  // 礁溪早餐查詢（包含分頁指令）
-  if (userMessage.includes('礁溪早餐') || userMessage === '早餐下一頁' || userMessage === '早餐上一頁') {
+  // 處理通用分頁指令（上一頁/下一頁）
+  if (userMessage === '下一頁' || userMessage === '上一頁') {
+    await handlePagination(userMessage, event.replyToken, userId);
+    return;
+  }
+
+  // 礁溪早餐查詢
+  if (userMessage.includes('礁溪早餐')) {
     await handleJiaoxiBreakfastQuery(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 礁溪午餐查詢（包含分頁指令）
-  if (userMessage.includes('礁溪午餐') || userMessage === '午餐下一頁' || userMessage === '午餐上一頁') {
+  // 礁溪午餐查詢
+  if (userMessage.includes('礁溪午餐')) {
     await handleJiaoxiLunchQuery(userMessage, event.replyToken, userId);
     return;
   }
   
-  // 礁溪晚餐查詢（包含分頁指令）
-  if (userMessage.includes('礁溪晚餐') || userMessage === '晚餐下一頁' || userMessage === '晚餐上一頁') {
+  // 礁溪晚餐查詢
+  if (userMessage.includes('礁溪晚餐')) {
     await handleJiaoxiDinnerQuery(userMessage, event.replyToken, userId);
     return;
   }
@@ -1051,7 +950,7 @@ async function handleEvent(event) {
   // 預設回應
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n\n📖 分頁功能：\n   「早餐下一頁」「早餐上一頁」\n   「午餐下一頁」「午餐上一頁」\n   「晚餐下一頁」「晚餐上一頁」\n\n🔍 搜尋特定店家：\n   「礁溪早餐 酷克伊早餐」\n   「礁溪午餐 甕窯雞」\n   「礁溪晚餐 甕窯雞」\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n\n📖 分頁功能：\n   查看列表後輸入「下一頁」或「上一頁」\n\n🔍 搜尋特定店家：\n   「礁溪早餐 酷克伊早餐」\n   「礁溪午餐 甕窯雞」\n   「礁溪晚餐 甕窯雞」\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
