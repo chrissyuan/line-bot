@@ -576,11 +576,6 @@ async function getDebugInfo() {
 
 /**
  * 格式化店家訊息（支援分頁）
- * @param {Array} shops - 店家陣列
- * @param {number} page - 目前頁碼（從1開始）
- * @param {string} mealType - 餐別（早餐/午餐/晚餐）
- * @param {string} region - 地區（礁溪/宜蘭等）
- * @returns {string} 格式化的訊息
  */
 function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪') {
   const itemsPerPage = 30;
@@ -602,7 +597,6 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
   message += `\n📝 顯示 ${startIndex + 1}-${Math.min(endIndex, shops.length)} / 共 ${shops.length} 間店家\n`;
   message += '━━━━━━━━━━━━\n';
   
-  // 分頁控制說明
   if (totalPages > 1) {
     if (page > 1 && page < totalPages) {
       message += `📖 輸入「上一頁」或「下一頁」切換\n`;
@@ -619,17 +613,122 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
   return message;
 }
 
+/**
+ * 建立店家詳細資訊的 Flex Message（點擊按鈕直接開啟 Google Maps 導航）
+ */
+function createShopDetailFlexMessage(shop, mealType) {
+  const emoji = mealType === '早餐' ? '🍳' : (mealType === '午餐' ? '🍱' : '🍽️');
+  
+  // 將地址轉換為 Google Maps 導航連結（使用 encodeURIComponent 確保中文正常）
+  const encodedAddress = encodeURIComponent(shop.address);
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  
+  // 建立 body 內容
+  const bodyContents = [
+    {
+      type: 'text',
+      text: `${emoji} ${shop.name}`,
+      weight: 'bold',
+      size: 'xl',
+      wrap: true
+    },
+    {
+      type: 'box',
+      layout: 'vertical',
+      margin: 'md',
+      spacing: 'sm',
+      contents: [
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '📍', size: 'md', flex: 0 },
+            { type: 'text', text: shop.address, size: 'sm', wrap: true, flex: 1 }
+          ]
+        },
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: '🕐', size: 'md', flex: 0 },
+            { type: 'text', text: shop.hours, size: 'sm', wrap: true, flex: 1 }
+          ]
+        }
+      ]
+    }
+  ];
+  
+  // 如果有電話，加入電話欄位
+  if (shop.phone && shop.phone !== '') {
+    bodyContents[1].contents.push({
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        { type: 'text', text: '📞', size: 'md', flex: 0 },
+        { type: 'text', text: shop.phone, size: 'sm', wrap: true, flex: 1 }
+      ]
+    });
+  }
+  
+  // 建立 footer 按鈕 - 直接使用 Google Maps 導航連結
+  const footerContents = [
+    {
+      type: 'button',
+      style: 'primary',
+      height: 'sm',
+      action: {
+        type: 'uri',
+        label: '🗺️ 開啟 Google 地圖導航',
+        uri: mapUrl
+      }
+    }
+  ];
+  
+  // 建立 Flex Message
+  const flexMessage = {
+    type: 'flex',
+    altText: `${shop.name} - ${mealType}店家資訊`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: bodyContents
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: footerContents
+      }
+    }
+  };
+  
+  // 如果有圖片，加入 hero
+  if (shop.imageUrl) {
+    flexMessage.contents.hero = {
+      type: 'image',
+      url: shop.imageUrl,
+      size: 'full',
+      aspectRatio: '20:13',
+      aspectMode: 'cover'
+    };
+  }
+  
+  return flexMessage;
+}
+
 // ==================== 查詢處理函數 ====================
 
 /**
  * 處理礁溪早餐店查詢
  */
 async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
-  // 如果只輸入「礁溪早餐」，顯示所有店家列表（第一頁）
   if (userMessage === '礁溪早餐') {
     const allShops = jiaoxiBreakfastData.getAllJiaoxiBreakfastShops();
     
-    // 儲存使用者狀態
     userSessions.set(userId, {
       type: 'breakfast',
       region: '礁溪',
@@ -651,7 +750,6 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
  * 處理礁溪午餐店查詢
  */
 async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
-  // 如果只輸入「礁溪午餐」，顯示所有店家列表（第一頁）
   if (userMessage === '礁溪午餐') {
     const allShops = jiaoxiLunchData.getAllJiaoxiLunchShops();
     
@@ -676,7 +774,6 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
  * 處理礁溪晚餐店查詢
  */
 async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
-  // 如果只輸入「礁溪晚餐」，顯示所有店家列表（第一頁）
   if (userMessage === '礁溪晚餐') {
     const allShops = jiaoxiDinnerData.getAllJiaoxiDinnerShops();
     
@@ -709,14 +806,12 @@ async function handleShopSearch(userMessage, replyToken, userId) {
   let mealType = '早餐';
   
   if (results.length === 0) {
-    // 搜尋午餐店
     results = jiaoxiLunchData.searchJiaoxiLunchShops(userMessage);
     shopType = 'lunch';
     mealType = '午餐';
   }
   
   if (results.length === 0) {
-    // 搜尋晚餐店
     results = jiaoxiDinnerData.searchJiaoxiDinnerShops(userMessage);
     shopType = 'dinner';
     mealType = '晚餐';
@@ -729,20 +824,11 @@ async function handleShopSearch(userMessage, replyToken, userId) {
     });
   }
   
-  // 如果只有一筆結果，直接顯示詳細資訊
+  // 如果只有一筆結果，直接顯示詳細資訊（使用 Flex Message）
   if (results.length === 1) {
-    let detail;
-    if (shopType === 'breakfast') {
-      detail = jiaoxiBreakfastData.getJiaoxiBreakfastShopDetailWithImage(results[0].name);
-    } else if (shopType === 'lunch') {
-      detail = jiaoxiLunchData.getJiaoxiLunchShopDetailWithImage(results[0].name);
-    } else {
-      detail = jiaoxiDinnerData.getJiaoxiDinnerShopDetailWithImage(results[0].name);
-    }
-    
-    if (detail) {
-      return client.replyMessage(replyToken, detail);
-    }
+    const shop = results[0];
+    const flexMessage = createShopDetailFlexMessage(shop, mealType);
+    return client.replyMessage(replyToken, flexMessage);
   }
   
   // 多筆結果，顯示列表（支援分頁）
@@ -782,7 +868,6 @@ async function handlePagination(userMessage, replyToken, userId) {
   
   const totalPages = Math.ceil(shops.length / 30);
   
-  // 處理下一頁
   if (userMessage === '下一頁') {
     const nextPage = page + 1;
     if (nextPage <= totalPages) {
@@ -801,7 +886,6 @@ async function handlePagination(userMessage, replyToken, userId) {
     }
   }
   
-  // 處理上一頁
   if (userMessage === '上一頁') {
     const prevPage = page - 1;
     if (prevPage >= 1) {
@@ -845,7 +929,7 @@ async function handleEvent(event) {
     });
   }
 
-  // 處理通用分頁指令（上一頁/下一頁）
+  // 處理通用分頁指令
   if (userMessage === '下一頁' || userMessage === '上一頁') {
     await handlePagination(userMessage, event.replyToken, userId);
     return;
@@ -889,7 +973,7 @@ async function handleEvent(event) {
     }
   }
 
-  // 直接輸入店名搜尋（排除指令類的關鍵字）
+  // 直接輸入店名搜尋
   const excludeKeywords = ['天氣', '宜蘭', '早餐', '午餐', '晚餐', '下一頁', '上一頁', '!debug'];
   const isExcluded = excludeKeywords.some(keyword => userMessage.includes(keyword));
   
@@ -907,7 +991,6 @@ async function handleEvent(event) {
 
 // ==================== 伺服器設定 ====================
 
-// 解析 Line 的 webhook 請求
 app.post('/webhook', line.middleware(lineConfig), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
     .then((result) => res.json(result))
@@ -917,7 +1000,6 @@ app.post('/webhook', line.middleware(lineConfig), (req, res) => {
     });
 });
 
-// 啟動伺服器
 app.listen(PORT, () => {
   console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
   console.log(`Webhook URL: https://line-bot-agjf.onrender.com/webhook`);
