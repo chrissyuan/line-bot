@@ -1,14 +1,15 @@
-// data/Jiaoxi/attractionsAndRestaurants.js
+// data/Jiaoxi/familyEnvironment.js
 
-// 景點和餐廳資料庫
+// 親子環境資料庫（包含景點和餐廳）
 const places = [
-  // 景點
+  // ==================== 景點 ====================
   {
     name: '礁溪二龍之心公園',
     address: '262宜蘭縣礁溪鄉淇武蘭路95巷97號',
     hours: '24 小時營業',
     phone: '',
     category: '景點',
+    subcategory: '公園',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路95巷97號',
     imageUrl: ''
   },
@@ -18,6 +19,7 @@ const places = [
     hours: '24 小時營業',
     phone: '',
     category: '景點',
+    subcategory: '公園',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉環湖道路1號',
     imageUrl: ''
   },
@@ -27,6 +29,7 @@ const places = [
     hours: '24 小時營業',
     phone: '',
     category: '景點',
+    subcategory: '公園',
     mapLink: 'https://maps.google.com/?q=261宜蘭縣頭城鎮北宜一路一段1巷46號',
     imageUrl: ''
   },
@@ -36,6 +39,7 @@ const places = [
     hours: '08:00–22:00',
     phone: '',
     category: '景點',
+    subcategory: '體驗館',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路19巷18號',
     imageUrl: ''
   },
@@ -45,6 +49,7 @@ const places = [
     hours: '10:00–18:00',
     phone: '',
     category: '景點',
+    subcategory: '休閒農場',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段495號',
     imageUrl: ''
   },
@@ -54,6 +59,7 @@ const places = [
     hours: '10:00–22:00',
     phone: '',
     category: '景點',
+    subcategory: '釣蝦場',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉興農路196巷7弄8號之1號',
     imageUrl: ''
   },
@@ -63,6 +69,7 @@ const places = [
     hours: '08:00–17:00',
     phone: '',
     category: '景點',
+    subcategory: '生態館',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉奇立丹路103-1號',
     imageUrl: ''
   },
@@ -72,6 +79,7 @@ const places = [
     hours: '09:00–12:00、13:30–16:00',
     phone: '',
     category: '景點',
+    subcategory: '親子館',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育龍路71號b1',
     imageUrl: ''
   },
@@ -81,6 +89,7 @@ const places = [
     hours: '10:00–21:00',
     phone: '',
     category: '景點',
+    subcategory: '體驗館',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路19巷18號溝公園公廁旁',
     imageUrl: ''
   },
@@ -90,6 +99,7 @@ const places = [
     hours: '09:00–18:00',
     phone: '',
     category: '景點',
+    subcategory: '休閒農場',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉開蘭路209號',
     imageUrl: ''
   },
@@ -99,6 +109,7 @@ const places = [
     hours: '09:00–17:00',
     phone: '',
     category: '景點',
+    subcategory: '體驗館',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉匏杓崙路95-6號',
     imageUrl: ''
   },
@@ -108,6 +119,7 @@ const places = [
     hours: '10:30–18:00',
     phone: '',
     category: '景點',
+    subcategory: '釣蝦場',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉石路44-2號',
     imageUrl: ''
   },
@@ -117,6 +129,7 @@ const places = [
     hours: '08:00–17:00',
     phone: '',
     category: '景點',
+    subcategory: '生態館',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路162-13號',
     imageUrl: ''
   },
@@ -126,6 +139,7 @@ const places = [
     hours: '09:30–18:00',
     phone: '',
     category: '景點',
+    subcategory: '觀光工廠',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路110之5號',
     imageUrl: ''
   },
@@ -135,6 +149,7 @@ const places = [
     hours: '09:00–17:00',
     phone: '',
     category: '景點',
+    subcategory: '休閒農場',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路18-17號',
     imageUrl: ''
   },
@@ -144,6 +159,7 @@ const places = [
     hours: '07:00–16:30',
     phone: '',
     category: '景點',
+    subcategory: '學校',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段135號',
     imageUrl: ''
   },
@@ -153,16 +169,18 @@ const places = [
     hours: '06:30–16:30',
     phone: '',
     category: '景點',
+    subcategory: '學校',
     mapLink: 'https://maps.google.com/?q=26242宜蘭縣礁溪鄉育龍路71號',
     imageUrl: ''
   },
-  // 餐廳
+  // ==================== 餐廳 ====================
   {
     name: '皇家花園餐廳',
     address: '262宜蘭縣礁溪鄉礁溪路七段109號',
     hours: '11:00–21:00',
     phone: '',
     category: '餐廳',
+    subcategory: '中式餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段109號',
     imageUrl: ''
   },
@@ -172,6 +190,7 @@ const places = [
     hours: '14:00–23:00',
     phone: '',
     category: '餐廳',
+    subcategory: '釣蝦餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路85號1樓',
     imageUrl: ''
   },
@@ -181,6 +200,7 @@ const places = [
     hours: '10:00–19:30',
     phone: '',
     category: '餐廳',
+    subcategory: '親子餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉塭底路3-15號',
     imageUrl: ''
   },
@@ -190,6 +210,7 @@ const places = [
     hours: '11:00–14:00、17:00–21:00',
     phone: '',
     category: '餐廳',
+    subcategory: '海鮮餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段497號',
     imageUrl: ''
   },
@@ -199,6 +220,7 @@ const places = [
     hours: '11:00–17:00',
     phone: '',
     category: '餐廳',
+    subcategory: '咖啡廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉三路113號',
     imageUrl: ''
   },
@@ -208,6 +230,7 @@ const places = [
     hours: '10:30–17:00',
     phone: '',
     category: '餐廳',
+    subcategory: '咖啡廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路150-10號',
     imageUrl: ''
   },
@@ -217,6 +240,7 @@ const places = [
     hours: '11:30–15:30、17:00–20:30',
     phone: '',
     category: '餐廳',
+    subcategory: '泰式餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉白雲一路28巷1之2號',
     imageUrl: ''
   },
@@ -226,6 +250,7 @@ const places = [
     hours: '11:00–17:30',
     phone: '',
     category: '餐廳',
+    subcategory: '寵物餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路19之8號',
     imageUrl: ''
   },
@@ -235,6 +260,7 @@ const places = [
     hours: '10:00–18:00',
     phone: '',
     category: '餐廳',
+    subcategory: '咖啡廳',
     mapLink: 'https://maps.google.com/?q=26249宜蘭縣礁溪鄉十六結路23之17號',
     imageUrl: ''
   },
@@ -244,6 +270,7 @@ const places = [
     hours: '11:30–14:00、17:00–21:30',
     phone: '',
     category: '餐廳',
+    subcategory: '快炒',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉健康一街20號',
     imageUrl: ''
   },
@@ -253,6 +280,7 @@ const places = [
     hours: '10:00–19:00',
     phone: '',
     category: '餐廳',
+    subcategory: '景觀餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路42-9號',
     imageUrl: ''
   },
@@ -262,6 +290,7 @@ const places = [
     hours: '11:30–14:30、17:30–20:00',
     phone: '',
     category: '餐廳',
+    subcategory: '海鮮餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路一段498號',
     imageUrl: ''
   },
@@ -271,6 +300,7 @@ const places = [
     hours: '11:30–16:00、17:30–20:30',
     phone: '',
     category: '餐廳',
+    subcategory: '咖啡廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段406號',
     imageUrl: ''
   },
@@ -280,6 +310,7 @@ const places = [
     hours: '11:30–14:00、17:30–20:00',
     phone: '',
     category: '餐廳',
+    subcategory: '中式餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路34-5號一樓',
     imageUrl: ''
   },
@@ -289,34 +320,41 @@ const places = [
     hours: '09:00–22:00',
     phone: '',
     category: '餐廳',
+    subcategory: '海鮮餐廳',
     mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路51-2號',
     imageUrl: ''
   }
 ];
 
-// 根據關鍵字搜尋（搜尋店名和地址）
-function searchJiaoxiPlaces(keyword) {
+// 根據關鍵字搜尋（搜尋店名、地址、分類、子分類）
+function searchFamilyEnvironment(keyword) {
   if (!keyword) return places;
   
   const lowerKeyword = keyword.toLowerCase();
   return places.filter(place => 
     place.name.toLowerCase().includes(lowerKeyword) ||
-    place.address.toLowerCase().includes(lowerKeyword)
+    place.address.toLowerCase().includes(lowerKeyword) ||
+    place.category.toLowerCase().includes(lowerKeyword) ||
+    place.subcategory.toLowerCase().includes(lowerKeyword)
   );
 }
 
-// 根據分類搜尋
-function searchJiaoxiPlacesByCategory(category) {
+// 根據分類搜尋（景點或餐廳）
+function searchByCategory(category) {
   if (!category) return places;
-  
   const lowerCategory = category.toLowerCase();
-  return places.filter(place => 
-    place.category.toLowerCase().includes(lowerCategory)
-  );
+  return places.filter(place => place.category.toLowerCase() === lowerCategory);
 }
 
-// 取得所有景點和餐廳
-function getAllJiaoxiPlaces() {
+// 根據子分類搜尋
+function searchBySubcategory(subcategory) {
+  if (!subcategory) return places;
+  const lowerSubcategory = subcategory.toLowerCase();
+  return places.filter(place => place.subcategory.toLowerCase().includes(lowerSubcategory));
+}
+
+// 取得所有親子環境地點
+function getAllFamilyEnvironment() {
   return places;
 }
 
@@ -331,7 +369,7 @@ function getRestaurants() {
 }
 
 // 取得數量
-function getJiaoxiPlacesCount() {
+function getTotalCount() {
   return places.length;
 }
 
@@ -345,30 +383,8 @@ function getRestaurantsCount() {
   return places.filter(place => place.category === '餐廳').length;
 }
 
-// 獲取單一店家詳細資訊（純文字版）
-function getJiaoxiPlaceDetail(placeName) {
-  const place = places.find(p => 
-    p.name.includes(placeName) || 
-    placeName.includes(p.name)
-  );
-  
-  if (!place) return null;
-  
-  let categoryEmoji = place.category === '景點' ? '🏞️' : '🍽️';
-  
-  let detail = `${categoryEmoji} ${place.name}\n`;
-  detail += `━━━━━━━━━━━━\n`;
-  detail += `📂 ${place.category}\n`;
-  detail += `📍 ${place.address}\n`;
-  detail += `🕐 ${place.hours}\n`;
-  if (place.phone) detail += `📞 ${place.phone}\n`;
-  detail += `🔗 ${place.mapLink}`;
-  
-  return detail;
-}
-
-// 獲取單一店家詳細資訊（包含圖片）- 回傳 Line 訊息格式
-function getJiaoxiPlaceDetailWithImage(placeName) {
+// 獲取單一地點詳細資訊（純文字版）
+function getPlaceDetail(placeName) {
   const place = places.find(p => 
     p.name.includes(placeName) || 
     placeName.includes(p.name)
@@ -377,7 +393,55 @@ function getJiaoxiPlaceDetailWithImage(placeName) {
   if (!place) return null;
   
   const categoryEmoji = place.category === '景點' ? '🏞️' : '🍽️';
-  const textMessage = `${categoryEmoji} ${place.name}\n━━━━━━━━━━━━\n📂 ${place.category}\n📍 ${place.address}\n🕐 ${place.hours}\n🔗 ${place.mapLink}`;
+  const subcategoryEmoji = getSubcategoryEmoji(place.subcategory);
+  
+  let detail = `${categoryEmoji} ${place.name}\n`;
+  detail += `━━━━━━━━━━━━\n`;
+  detail += `📂 ${place.category} ${subcategoryEmoji}${place.subcategory}\n`;
+  detail += `📍 ${place.address}\n`;
+  detail += `🕐 ${place.hours}\n`;
+  if (place.phone) detail += `📞 ${place.phone}\n`;
+  detail += `🔗 ${place.mapLink}`;
+  
+  return detail;
+}
+
+// 取得子分類表情符號
+function getSubcategoryEmoji(subcategory) {
+  const emojiMap = {
+    '公園': '🌳',
+    '體驗館': '🎮',
+    '休閒農場': '🐮',
+    '釣蝦場': '🦐',
+    '生態館': '🐠',
+    '親子館': '👶',
+    '觀光工廠': '🏭',
+    '學校': '📚',
+    '中式餐廳': '🥢',
+    '釣蝦餐廳': '🦐',
+    '親子餐廳': '👪',
+    '海鮮餐廳': '🦀',
+    '咖啡廳': '☕',
+    '泰式餐廳': '🍜',
+    '寵物餐廳': '🐶',
+    '快炒': '🍳',
+    '景觀餐廳': '🏔️'
+  };
+  return emojiMap[subcategory] || '📍';
+}
+
+// 獲取單一地點詳細資訊（包含圖片）- 回傳 Line 訊息格式
+function getPlaceDetailWithImage(placeName) {
+  const place = places.find(p => 
+    p.name.includes(placeName) || 
+    placeName.includes(p.name)
+  );
+  
+  if (!place) return null;
+  
+  const categoryEmoji = place.category === '景點' ? '🏞️' : '🍽️';
+  const subcategoryEmoji = getSubcategoryEmoji(place.subcategory);
+  const textMessage = `${categoryEmoji} ${place.name}\n━━━━━━━━━━━━\n📂 ${place.category} ${subcategoryEmoji}${place.subcategory}\n📍 ${place.address}\n🕐 ${place.hours}\n🔗 ${place.mapLink}`;
   
   // 如果有圖片網址，回傳包含圖片的訊息
   if (place.imageUrl) {
@@ -420,7 +484,7 @@ function getJiaoxiPlaceDetailWithImage(placeName) {
                     },
                     {
                       type: 'text',
-                      text: place.category,
+                      text: `${place.category} ${subcategoryEmoji}${place.subcategory}`,
                       size: 'sm',
                       wrap: true,
                       flex: 1
@@ -495,45 +559,72 @@ function getJiaoxiPlaceDetailWithImage(placeName) {
   };
 }
 
-// 格式化景點和餐廳訊息
-function formatJiaoxiPlacesMessage(places, title = '景點與餐廳') {
+// 格式化親子環境訊息
+function formatFamilyEnvironmentMessage(places, title = '親子環境') {
   if (!places || places.length === 0) {
-    return '🏞️ 找不到相關的景點或餐廳\n\n💡 提示：\n• 輸入「礁溪景點」查看所有景點\n• 輸入「礁溪餐廳」查看所有餐廳\n• 輸入「礁溪景點 名稱」搜尋特定景點\n• 輸入「礁溪餐廳 名稱」搜尋特定餐廳';
+    return '👨‍👩‍👧‍👦 找不到相關的親子環境地點\n\n💡 提示：\n• 輸入「親子環境」查看所有親子景點與餐廳\n• 輸入「親子環境 景點」只看景點\n• 輸入「親子環境 餐廳」只看餐廳\n• 輸入「親子環境 公園」只看公園類\n• 或直接輸入名稱搜尋特定地點';
   }
 
-  let message = `🏞️ 礁溪${title}列表\n`;
+  let message = `👨‍👩‍👧‍👦 礁溪${title}列表\n`;
   message += '━━━━━━━━━━━━\n\n';
   
   const displayPlaces = places.slice(0, 30);
   
   displayPlaces.forEach((place, index) => {
     const emoji = place.category === '景點' ? '🏞️' : '🍽️';
+    const subEmoji = getSubcategoryEmoji(place.subcategory);
     message += `${index + 1}. ${emoji} ${place.name}\n`;
+    message += `   ${subEmoji} ${place.subcategory}\n`;
   });
   
   if (places.length > 30) {
     message += `\n📊 還有 ${places.length - 30} 個地點\n`;
-    message += `💡 輸入「礁溪景點 名稱」搜尋特定景點`;
+    message += `💡 輸入「親子環境 景點」或「親子環境 餐廳」篩選`;
   } else {
-    message += `\n📝 共 ${places.length} 個地點\n`;
-    message += `💡 輸入「礁溪景點 名稱」或「礁溪餐廳 名稱」搜尋詳細資訊`;
+    message += `\n📝 共 ${places.length} 個親子地點\n`;
+    message += `   🏞️ 景點 ${getAttractionsCount()} 個 | 🍽️ 餐廳 ${getRestaurantsCount()} 間\n`;
+    message += `💡 輸入「親子環境 公園」可依分類篩選`;
   }
   
-  message += `\n━━━━━━━━━━━━\n🔍 例如：礁溪景點 甲鳥園 或 礁溪餐廳 里海咖啡`;
+  message += `\n━━━━━━━━━━━━\n🔍 例如：親子環境 水鹿咖啡 或 親子環境 公園`;
   
   return message;
 }
 
+// 取得分類統計
+function getCategoryStats() {
+  return {
+    總數: places.length,
+    景點: getAttractionsCount(),
+    餐廳: getRestaurantsCount(),
+    子分類: {
+      公園: places.filter(p => p.subcategory === '公園').length,
+      體驗館: places.filter(p => p.subcategory === '體驗館').length,
+      休閒農場: places.filter(p => p.subcategory === '休閒農場').length,
+      釣蝦場: places.filter(p => p.subcategory === '釣蝦場').length,
+      生態館: places.filter(p => p.subcategory === '生態館').length,
+      親子館: places.filter(p => p.subcategory === '親子館').length,
+      觀光工廠: places.filter(p => p.subcategory === '觀光工廠').length,
+      親子餐廳: places.filter(p => p.subcategory === '親子餐廳').length,
+      咖啡廳: places.filter(p => p.subcategory === '咖啡廳').length,
+      海鮮餐廳: places.filter(p => p.subcategory === '海鮮餐廳').length
+    }
+  };
+}
+
 module.exports = {
-  getAllJiaoxiPlaces,
-  getJiaoxiPlacesCount,
+  getAllFamilyEnvironment,
+  getTotalCount,
   getAttractions,
   getAttractionsCount,
   getRestaurants,
   getRestaurantsCount,
-  searchJiaoxiPlaces,
-  searchJiaoxiPlacesByCategory,
-  getJiaoxiPlaceDetail,
-  getJiaoxiPlaceDetailWithImage,
-  formatJiaoxiPlacesMessage
+  searchFamilyEnvironment,
+  searchByCategory,
+  searchBySubcategory,
+  getPlaceDetail,
+  getPlaceDetailWithImage,
+  formatFamilyEnvironmentMessage,
+  getCategoryStats,
+  getSubcategoryEmoji
 };
