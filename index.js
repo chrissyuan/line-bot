@@ -678,8 +678,8 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
 }
 
 async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
-  // 處理「親子環境」主查詢
-  if (userMessage === '親子環境') {
+  // 處理「礁溪親子環境」主查詢
+  if (userMessage === '礁溪親子環境') {
     const allPlaces = familyEnvironmentData.getAllFamilyEnvironment();
     
     userSessions.set(userId, {
@@ -689,60 +689,18 @@ async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
       page: 1
     });
     
-    const textMessage = formatShopMessageWithPagination(allPlaces, 1, '親子環境', '礁溪');
+    const textMessage = formatShopMessageWithPagination(allPlaces, 1, '礁溪親子環境', '礁溪');
     return client.replyMessage(replyToken, { type: 'text', text: textMessage });
   }
   
-  // 處理「親子環境 景點」- 只看景點
-  if (userMessage === '親子環境 景點') {
-    const attractions = familyEnvironmentData.getAttractions();
-    
-    userSessions.set(userId, {
-      type: 'familyEnvironmentAttractions',
-      region: '礁溪',
-      shops: attractions,
-      page: 1
-    });
-    
-    const textMessage = formatShopMessageWithPagination(attractions, 1, '親子環境-景點', '礁溪');
-    return client.replyMessage(replyToken, { type: 'text', text: textMessage });
-  }
-  
-  // 處理「親子環境 餐廳」- 只看餐廳
-  if (userMessage === '親子環境 餐廳') {
-    const restaurants = familyEnvironmentData.getRestaurants();
-    
-    userSessions.set(userId, {
-      type: 'familyEnvironmentRestaurants',
-      region: '礁溪',
-      shops: restaurants,
-      page: 1
-    });
-    
-    const textMessage = formatShopMessageWithPagination(restaurants, 1, '親子環境-餐廳', '礁溪');
-    return client.replyMessage(replyToken, { type: 'text', text: textMessage });
-  }
-  
-  // 處理依子分類篩選（例如：親子環境 公園、親子環境 親子餐廳）
-  if (userMessage.startsWith('親子環境 ')) {
-    const subcategory = userMessage.substring(5); // 去掉「親子環境 」
-    const filtered = familyEnvironmentData.searchBySubcategory(subcategory);
-    
-    if (filtered.length > 0) {
-      userSessions.set(userId, {
-        type: 'familyEnvironmentFiltered',
-        region: '礁溪',
-        shops: filtered,
-        page: 1,
-        filter: subcategory
-      });
+ 
       
-      const textMessage = formatShopMessageWithPagination(filtered, 1, `親子環境-${subcategory}`, '礁溪');
+      const textMessage = formatShopMessageWithPagination(filtered, 1, `礁溪親子環境-${subcategory}`, '礁溪');
       return client.replyMessage(replyToken, { type: 'text', text: textMessage });
     } else {
       return client.replyMessage(replyToken, {
         type: 'text',
-        text: `🔍 找不到「${subcategory}」分類的親子環境地點\n\n💡 可用的分類：\n🏞️ 景點分類：公園、體驗館、休閒農場、釣蝦場、生態館、親子館、觀光工廠\n🍽️ 餐廳分類：親子餐廳、咖啡廳、海鮮餐廳、中式餐廳、泰式餐廳、寵物餐廳、快炒、景觀餐廳`
+        text: `🔍 找不到「${subcategory}」分類的礁溪親子環境地點\n\n💡 可用的分類：\n🏞️ 景點分類：公園、體驗館、休閒農場、釣蝦場、生態館、親子館、觀光工廠\n🍽️ 餐廳分類：親子餐廳、咖啡廳、海鮮餐廳、中式餐廳、泰式餐廳、寵物餐廳、快炒、景觀餐廳`
       });
     }
   }
