@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const line = require('@line/bot-sdk');
 
-// 導入資料 - 新的路徑結構
+// 導入資料 - 根據您的檔案位置調整路徑
 const jiaoxiBreakfastData = require('./data/Jiaoxi/breakfastShops');
 const jiaoxiLunchData = require('./data/Jiaoxi/lunchShops');
 const jiaoxiDinnerData = require('./data/Jiaoxi/dinnerShops');
@@ -24,13 +24,10 @@ const lineConfig = {
 const client = new line.Client(lineConfig);
 
 // 儲存使用者的查詢狀態（用於分頁）
-const userSessions = new Map(); // key: userId, value: { type, region, shops, page }
+const userSessions = new Map();
 
 // ==================== 工具函數 ====================
 
-/**
- * 安全地取得數值
- */
 function getElementValue(elementValue) {
   if (!elementValue) return null;
 
@@ -59,17 +56,11 @@ function getElementValue(elementValue) {
   return null;
 }
 
-/**
- * 安全地取得時間
- */
 function getTimeString(timeObj) {
   if (!timeObj) return null;
   return timeObj.DataTime || timeObj.dataTime || timeObj.StartTime || timeObj.startTime || null;
 }
 
-/**
- * 獲取今天 + 未來3天的日期（格式：MM/DD）
- */
 function getDates() {
   const dates = [];
   const today = new Date();
@@ -85,9 +76,6 @@ function getDates() {
   return dates;
 }
 
-/**
- * 生成2小時間隔的時間區間（備用方案）
- */
 function generate2HourSlots() {
   const slots = [];
   const now = new Date();
@@ -134,9 +122,6 @@ function generate2HourSlots() {
 
 // ==================== API 資料獲取函數 ====================
 
-/**
- * 從 F-D0047-001 API 獲取2小時間隔的溫度預報（礁溪鄉）
- */
 async function getHourlyTemperature() {
   try {
     console.log('開始取得小時溫度預報（F-D0047-001 礁溪鄉）...');
@@ -169,8 +154,6 @@ async function getHourlyTemperature() {
       return null;
     }
 
-    console.log('使用地點:', jiaoxiData.LocationName);
-
     const weatherElements = jiaoxiData.WeatherElement || [];
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
     console.log(`找到溫度資料筆數: ${tempData.length}`);
@@ -180,16 +163,12 @@ async function getHourlyTemperature() {
       return null;
     }
 
-    // 獲取當前時間
     const now = new Date();
     const twTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
     const currentHour = twTime.getHours();
     const currentMinute = twTime.getMinutes();
     const currentDate = `${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
     
-    console.log(`當前時間: ${currentHour}:${currentMinute}, 日期: ${currentDate}`);
-
-    // 決定起始時間
     let startHour = currentHour;
     let startDay = 0;
 
@@ -203,8 +182,6 @@ async function getHourlyTemperature() {
       startHour -= 24;
       startDay = 1;
     }
-
-    console.log(`起始小時: ${startHour}, 起始日: ${startDay === 0 ? '今天' : '明天'}`);
 
     let tempText = "";
     let foundCount = 0;
@@ -256,7 +233,6 @@ async function getHourlyTemperature() {
       }
     }
 
-    console.log(`總共找到 ${foundCount} 筆溫度資料`);
     return tempText || null;
     
   } catch (error) {
@@ -265,9 +241,6 @@ async function getHourlyTemperature() {
   }
 }
 
-/**
- * 從 F-D0047-001 API 獲取今天 + 未來3天預報（礁溪鄉）
- */
 async function getDailyForecast() {
   try {
     const response = await axios.get(
@@ -299,22 +272,12 @@ async function getDailyForecast() {
     const tempData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
     const popData = weatherElements.find(e => e.ElementName === '3小時降雨機率')?.Time || [];
 
-    // 除錯：顯示所有可用的日期
-    const availableDates = [...new Set(tempData.map(item => {
-      const timeStr = getTimeString(item);
-      return timeStr ? timeStr.substring(5, 10).replace('-', '/') : null;
-    }).filter(d => d))];
-    
-    console.log('可用溫度日期:', availableDates.sort().join(', '));
-
-    // 取得今天 + 未來3天
     const dates = getDates();
     let forecast = [];
 
     for (let i = 0; i < dates.length; i++) {
       const targetDate = dates[i];
 
-      // 找當天的天氣現象（取中午左右的資料，較有代表性）
       const wx = wxData.find(item => {
         const timeStr = getTimeString(item);
         if (!timeStr) return false;
@@ -322,14 +285,12 @@ async function getDailyForecast() {
         const itemHour = parseInt(timeStr.substring(11, 13));
         return itemDate === targetDate && itemHour >= 10 && itemHour <= 14;
       }) || wxData.find(item => {
-        // 如果找不到中午的，就取第一筆
         const timeStr = getTimeString(item);
         if (!timeStr) return false;
         const itemDate = timeStr.substring(5, 10).replace('-', '/');
         return itemDate === targetDate;
       });
 
-      // 找當天的溫度資料
       const tempItems = tempData.filter(item => {
         const timeStr = getTimeString(item);
         if (!timeStr) return false;
@@ -337,7 +298,6 @@ async function getDailyForecast() {
         return itemDate === targetDate;
       });
 
-      // 找當天的降雨機率資料
       const popItems = popData.filter(item => {
         const timeStr = getTimeString(item);
         if (!timeStr) return false;
@@ -345,11 +305,8 @@ async function getDailyForecast() {
         return itemDate === targetDate;
       });
 
-      console.log(`${targetDate}: 找到 ${tempItems.length} 筆溫度, ${popItems.length} 筆降雨`);
-
       const weather = getElementValue(wx?.ElementValue) || '';
 
-      // 計算最低溫和最高溫
       const temps = tempItems
         .map(item => {
           const val = getElementValue(item.ElementValue);
@@ -360,11 +317,6 @@ async function getDailyForecast() {
       const minTemp = temps.length > 0 ? Math.min(...temps) : null;
       const maxTemp = temps.length > 0 ? Math.max(...temps) : null;
 
-      if (temps.length > 0) {
-        console.log(`${targetDate} 溫度範圍: ${minTemp}~${maxTemp} (共${temps.length}筆)`);
-      }
-
-      // 計算最高降雨機率
       const pops = popItems
         .map(item => {
           const val = getElementValue(item.ElementValue);
@@ -374,7 +326,6 @@ async function getDailyForecast() {
 
       const maxPop = pops.length > 0 ? Math.max(...pops) : null;
 
-      // 今天加上「今日」標記
       let dayText = targetDate;
       if (i === 0) {
         dayText += " (今日)";
@@ -382,7 +333,6 @@ async function getDailyForecast() {
 
       if (weather) dayText += ` ${weather}`;
 
-      // 顯示最低溫~最高溫
       if (minTemp !== null && maxTemp !== null) {
         if (minTemp === maxTemp) {
           dayText += ` ${minTemp}°`;
@@ -410,12 +360,8 @@ async function getDailyForecast() {
   }
 }
 
-/**
- * 取得主要天氣資訊
- */
 async function getCurrentWeather() {
   try {
-    // ===== 36小時預報（用於目前天氣和降雨）=====
     const res36 = await axios.get(
       `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}&locationName=宜蘭縣`
     );
@@ -434,13 +380,9 @@ async function getCurrentWeather() {
     const currentPop = pop[0].parameter.parameterName;
     const currentAvgTemp = Math.round(((currentMinTemp + currentMaxTemp) / 2) * 10) / 10;
 
-    // ===== 從 F-D0047-001 獲取小時溫度預報（礁溪鄉）=====
     const hourlyTemp = await getHourlyTemperature();
-
-    // ===== 從 F-D0047-001 獲取今日 + 未來3天預報（礁溪鄉）=====
     const dailyForecast = await getDailyForecast();
 
-    // 獲取今天的日期顯示
     const today = new Date();
     const twTime = new Date(today.getTime() + (8 * 60 * 60 * 1000));
     const todayStr = `${twTime.getFullYear()}/${String(twTime.getMonth() + 1).padStart(2, '0')}/${String(twTime.getDate()).padStart(2, '0')}`;
@@ -487,7 +429,7 @@ async function getCurrentWeather() {
       result += dailyForecast;
     }
 
-    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署 (F-D0047-001)`;
+    result += `\n━━━━━━━━━━━━\n資料來源：中央氣象署`;
     
     return result;
     
@@ -497,9 +439,6 @@ async function getCurrentWeather() {
   }
 }
 
-/**
- * 取得除錯資訊
- */
 async function getDebugInfo() {
   try {
     let debugText = "🔍 API 除錯資訊\n\n";
@@ -528,19 +467,6 @@ async function getDebugInfo() {
               if (jiaoxi.WeatherElement) {
                 const elements = jiaoxi.WeatherElement.map(e => e.ElementName).join(', ');
                 debugText += `可用元素: ${elements}\n`;
-                
-                const temp = jiaoxi.WeatherElement.find(e => e.ElementName === '溫度');
-                if (temp && temp.Time) {
-                  debugText += `溫度筆數: ${temp.Time.length}\n`;
-                  
-                  // 顯示可用日期
-                  const dates = [...new Set(temp.Time.map(t => {
-                    const timeStr = getTimeString(t);
-                    return timeStr ? timeStr.substring(5, 10).replace('-', '/') : null;
-                  }).filter(d => d))];
-                  
-                  debugText += `可用日期: ${dates.sort().join(', ')}\n`;
-                }
               }
             }
           }
@@ -550,23 +476,18 @@ async function getDebugInfo() {
       debugText += `❌ 失敗: ${e.message}\n`;
     }
 
-    // 加入礁溪早餐店統計資訊
     debugText += `\n🍳 礁溪早餐店資料庫\n`;
     debugText += `店家總數: ${jiaoxiBreakfastData.getJiaoxiBreakfastShopsCount()} 間\n`;
 
-    // 加入礁溪午餐店統計資訊
     debugText += `\n🍱 礁溪午餐店資料庫\n`;
     debugText += `店家總數: ${jiaoxiLunchData.getJiaoxiLunchShopsCount()} 間\n`;
 
-    // 加入礁溪晚餐店統計資訊
     debugText += `\n🍽️ 礁溪晚餐店資料庫\n`;
     debugText += `店家總數: ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間\n`;
 
-    // 加入礁溪景點統計資訊
     debugText += `\n🏞️ 礁溪景點資料庫\n`;
     debugText += `景點總數: ${jiaoxiPlacesData.getAttractionsCount()} 個\n`;
 
-    // 加入礁溪餐廳統計資訊
     debugText += `\n🍽️ 礁溪餐廳資料庫\n`;
     debugText += `餐廳總數: ${jiaoxiPlacesData.getRestaurantsCount()} 間\n`;
 
@@ -583,9 +504,6 @@ async function getDebugInfo() {
 
 // ==================== 分頁輔助函數 ====================
 
-/**
- * 格式化店家訊息（支援分頁）
- */
 function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪') {
   const itemsPerPage = 30;
   const startIndex = (page - 1) * itemsPerPage;
@@ -599,19 +517,13 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
   else if (mealType === '晚餐') emoji = '🍽️';
   else if (mealType === '景點') emoji = '🏞️';
   else if (mealType === '餐廳') emoji = '🍽️';
-  else if (mealType === '景點與餐廳') emoji = '🏞️';
   
   let message = `${emoji} ${region}${mealType}列表 (第${page}/${totalPages}頁)\n`;
   message += '━━━━━━━━━━━━\n\n';
   
   pageShops.forEach((shop, index) => {
     const globalIndex = startIndex + index + 1;
-    const itemEmoji = shop.category === '景點' ? '🏞️' : (shop.category === '餐廳' ? '🍽️' : '');
-    if (itemEmoji) {
-      message += `${globalIndex}. ${itemEmoji} ${shop.name}\n`;
-    } else {
-      message += `${globalIndex}. ${shop.name}\n`;
-    }
+    message += `${globalIndex}. ${shop.name}\n`;
   });
   
   message += `\n📝 顯示 ${startIndex + 1}-${Math.min(endIndex, shops.length)} / 共 ${shops.length} 個地點\n`;
@@ -628,14 +540,11 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
   }
   
   message += `💡 輸入「${region}${mealType}」查看所有${mealType}\n`;
-  message += `🔍 或直接輸入名稱搜尋（例如：甲鳥園、里海咖啡）`;
+  message += `🔍 或直接輸入名稱搜尋`;
   
   return message;
 }
 
-/**
- * 建立店家詳細資訊的 Flex Message（點擊按鈕直接開啟 Google Maps 導航）
- */
 function createShopDetailFlexMessage(shop, mealType) {
   let emoji = '🍳';
   if (mealType === '早餐') emoji = '🍳';
@@ -644,11 +553,9 @@ function createShopDetailFlexMessage(shop, mealType) {
   else if (mealType === '景點') emoji = '🏞️';
   else if (mealType === '餐廳') emoji = '🍽️';
   
-  // 將地址轉換為 Google Maps 導航連結（使用 encodeURIComponent 確保中文正常）
   const query = encodeURIComponent(`${shop.name} ${shop.address}`);
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
   
-  // 建立 body 內容
   const bodyContents = [
     {
       type: 'text',
@@ -683,20 +590,17 @@ function createShopDetailFlexMessage(shop, mealType) {
     }
   ];
   
-  // 如果有分類，加入分類欄位
   if (shop.category) {
-    const categoryEmoji = shop.category === '景點' ? '🏞️' : '🍽️';
     bodyContents[1].contents.unshift({
       type: 'box',
       layout: 'horizontal',
       contents: [
         { type: 'text', text: '📂', size: 'md', flex: 0 },
-        { type: 'text', text: `${categoryEmoji} ${shop.category}`, size: 'sm', wrap: true, flex: 1 }
+        { type: 'text', text: shop.category, size: 'sm', wrap: true, flex: 1 }
       ]
     });
   }
   
-  // 如果有電話，加入電話欄位
   if (shop.phone && shop.phone !== '') {
     bodyContents[1].contents.push({
       type: 'box',
@@ -708,7 +612,6 @@ function createShopDetailFlexMessage(shop, mealType) {
     });
   }
   
-  // 建立 footer 按鈕 - 直接使用 Google Maps 導航連結
   const footerContents = [
     {
       type: 'button',
@@ -722,7 +625,6 @@ function createShopDetailFlexMessage(shop, mealType) {
     }
   ];
   
-  // 建立 Flex Message
   const flexMessage = {
     type: 'flex',
     altText: `${shop.name} - ${mealType}店家資訊`,
@@ -744,7 +646,6 @@ function createShopDetailFlexMessage(shop, mealType) {
     }
   };
   
-  // 如果有圖片，加入 hero
   if (shop.imageUrl) {
     flexMessage.contents.hero = {
       type: 'image',
@@ -760,9 +661,6 @@ function createShopDetailFlexMessage(shop, mealType) {
 
 // ==================== 查詢處理函數 ====================
 
-/**
- * 處理礁溪早餐店查詢
- */
 async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
   if (userMessage === '礁溪早餐') {
     const allShops = jiaoxiBreakfastData.getAllJiaoxiBreakfastShops();
@@ -780,13 +678,9 @@ async function handleJiaoxiBreakfastQuery(userMessage, replyToken, userId) {
       text: textMessage
     });
   }
-  
   return null;
 }
 
-/**
- * 處理礁溪午餐店查詢
- */
 async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
   if (userMessage === '礁溪午餐') {
     const allShops = jiaoxiLunchData.getAllJiaoxiLunchShops();
@@ -804,13 +698,9 @@ async function handleJiaoxiLunchQuery(userMessage, replyToken, userId) {
       text: textMessage
     });
   }
-  
   return null;
 }
 
-/**
- * 處理礁溪晚餐店查詢
- */
 async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
   if (userMessage === '礁溪晚餐') {
     const allShops = jiaoxiDinnerData.getAllJiaoxiDinnerShops();
@@ -828,13 +718,9 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
       text: textMessage
     });
   }
-  
   return null;
 }
 
-/**
- * 處理礁溪景點查詢
- */
 async function handleJiaoxiAttractionsQuery(userMessage, replyToken, userId) {
   if (userMessage === '礁溪景點') {
     const allAttractions = jiaoxiPlacesData.getAttractions();
@@ -852,13 +738,9 @@ async function handleJiaoxiAttractionsQuery(userMessage, replyToken, userId) {
       text: textMessage
     });
   }
-  
   return null;
 }
 
-/**
- * 處理礁溪餐廳查詢
- */
 async function handleJiaoxiRestaurantsQuery(userMessage, replyToken, userId) {
   if (userMessage === '礁溪餐廳') {
     const allRestaurants = jiaoxiPlacesData.getRestaurants();
@@ -876,17 +758,10 @@ async function handleJiaoxiRestaurantsQuery(userMessage, replyToken, userId) {
       text: textMessage
     });
   }
-  
   return null;
 }
 
-// ==================== 通用搜尋函數 ====================
-
-/**
- * 通用店家搜尋函數（直接輸入店名即可搜尋）
- */
 async function handleShopSearch(userMessage, replyToken, userId) {
-  // 先搜尋早餐店
   let results = jiaoxiBreakfastData.searchJiaoxiBreakfastShops(userMessage);
   let shopType = 'breakfast';
   let mealType = '早餐';
@@ -903,12 +778,10 @@ async function handleShopSearch(userMessage, replyToken, userId) {
     mealType = '晚餐';
   }
   
-  // 如果早餐、午餐、晚餐都沒找到，搜尋景點和餐廳
   if (results.length === 0) {
     results = jiaoxiPlacesData.searchJiaoxiPlaces(userMessage);
     shopType = 'places';
     
-    // 判斷是景點還是餐廳
     if (results.length > 0 && results[0].category === '景點') {
       mealType = '景點';
     } else if (results.length > 0 && results[0].category === '餐廳') {
@@ -925,14 +798,12 @@ async function handleShopSearch(userMessage, replyToken, userId) {
     });
   }
   
-  // 如果只有一筆結果，直接顯示詳細資訊（使用 Flex Message）
   if (results.length === 1) {
     const shop = results[0];
     const flexMessage = createShopDetailFlexMessage(shop, mealType);
     return client.replyMessage(replyToken, flexMessage);
   }
   
-  // 多筆結果，顯示列表（支援分頁）
   userSessions.set(userId, {
     type: shopType,
     region: '礁溪',
@@ -947,11 +818,6 @@ async function handleShopSearch(userMessage, replyToken, userId) {
   });
 }
 
-// ==================== 通用分頁處理函數 ====================
-
-/**
- * 通用分頁處理函數
- */
 async function handlePagination(userMessage, replyToken, userId) {
   const session = userSessions.get(userId);
   if (!session || !session.shops) {
@@ -969,7 +835,6 @@ async function handlePagination(userMessage, replyToken, userId) {
   else if (type === 'attractions') mealType = '景點';
   else if (type === 'restaurants') mealType = '餐廳';
   else if (type === 'places') {
-    // 根據第一個項目的類別判斷
     if (shops.length > 0 && shops[0].category === '景點') mealType = '景點';
     else if (shops.length > 0 && shops[0].category === '餐廳') mealType = '餐廳';
     else mealType = '景點與餐廳';
@@ -1018,9 +883,6 @@ async function handlePagination(userMessage, replyToken, userId) {
 
 // ==================== Line Bot 事件處理 ====================
 
-/**
- * 處理 Line 事件
- */
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return Promise.resolve(null);
@@ -1029,7 +891,6 @@ async function handleEvent(event) {
   const userMessage = event.message.text;
   const userId = event.source.userId;
 
-  // 除錯指令
   if (userMessage === '!debug') {
     const debugInfo = await getDebugInfo();
     return client.replyMessage(event.replyToken, {
@@ -1038,43 +899,36 @@ async function handleEvent(event) {
     });
   }
 
-  // 處理通用分頁指令
   if (userMessage === '下一頁' || userMessage === '上一頁') {
     await handlePagination(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 礁溪早餐查詢
   if (userMessage === '礁溪早餐') {
     await handleJiaoxiBreakfastQuery(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 礁溪午餐查詢
   if (userMessage === '礁溪午餐') {
     await handleJiaoxiLunchQuery(userMessage, event.replyToken, userId);
     return;
   }
   
-  // 礁溪晚餐查詢
   if (userMessage === '礁溪晚餐') {
     await handleJiaoxiDinnerQuery(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 礁溪景點查詢
   if (userMessage === '礁溪景點') {
     await handleJiaoxiAttractionsQuery(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 礁溪餐廳查詢
   if (userMessage === '礁溪餐廳') {
     await handleJiaoxiRestaurantsQuery(userMessage, event.replyToken, userId);
     return;
   }
 
-  // 天氣查詢
   if (userMessage.includes('天氣') || userMessage.includes('宜蘭')) {
     try {
       const weatherData = await getCurrentWeather();
@@ -1094,7 +948,6 @@ async function handleEvent(event) {
     }
   }
 
-  // 直接輸入店名搜尋
   const excludeKeywords = ['天氣', '宜蘭', '早餐', '午餐', '晚餐', '景點', '餐廳', '下一頁', '上一頁', '!debug'];
   const isExcluded = excludeKeywords.some(keyword => userMessage.includes(keyword));
   
@@ -1103,7 +956,6 @@ async function handleEvent(event) {
     return;
   }
 
-  // 預設回應
   return client.replyMessage(event.replyToken, {
     type: 'text',
     text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n🏞️ 「礁溪景點」查詢礁溪景點\n🍽️ 「礁溪餐廳」查詢礁溪餐廳\n\n📖 分頁功能：\n   查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入店名搜尋：\n   例如：酷克伊早餐、甲鳥園、里海咖啡\n🛠️ 「!debug」查看API除錯資訊'
@@ -1123,7 +975,7 @@ app.post('/webhook', line.middleware(lineConfig), (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`天氣機器人正在連接埠 ${PORT} 上運行`);
-  console.log(`Webhook URL: https://line-bot-agjf.onrender.com/webhook`);
+  console.log(`Webhook URL: ${process.env.RENDER_EXTERNAL_URL || 'http://localhost:' + PORT}/webhook`);
   console.log(`礁溪早餐店資料庫已載入，共 ${jiaoxiBreakfastData.getJiaoxiBreakfastShopsCount()} 間店家`);
   console.log(`礁溪午餐店資料庫已載入，共 ${jiaoxiLunchData.getJiaoxiLunchShopsCount()} 間店家`);
   console.log(`礁溪晚餐店資料庫已載入，共 ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間店家`);
