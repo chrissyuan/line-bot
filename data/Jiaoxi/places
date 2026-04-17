@@ -1,0 +1,539 @@
+// data/Jiaoxi/attractionsAndRestaurants.js
+
+// 景點和餐廳資料庫
+const places = [
+  // 景點
+  {
+    name: '礁溪二龍之心公園',
+    address: '262宜蘭縣礁溪鄉淇武蘭路95巷97號',
+    hours: '24 小時營業',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路95巷97號',
+    imageUrl: ''
+  },
+  {
+    name: '大碗公溜滑梯',
+    address: '262宜蘭縣礁溪鄉環湖道路1號',
+    hours: '24 小時營業',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉環湖道路1號',
+    imageUrl: ''
+  },
+  {
+    name: '雪山隧道鑽掘機兒童廣場',
+    address: '261宜蘭縣頭城鎮北宜一路一段1巷46號',
+    hours: '24 小時營業',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=261宜蘭縣頭城鎮北宜一路一段1巷46號',
+    imageUrl: ''
+  },
+  {
+    name: '親子溫泉魚體驗館',
+    address: '262宜蘭縣礁溪鄉仁愛路19巷18號',
+    hours: '08:00–22:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路19巷18號',
+    imageUrl: ''
+  },
+  {
+    name: '大塭觀光休閒養殖區/輕親魚朶',
+    address: '262宜蘭縣礁溪鄉玉龍路二段495號',
+    hours: '10:00–18:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段495號',
+    imageUrl: ''
+  },
+  {
+    name: '豪運蝦の星球',
+    address: '262宜蘭縣礁溪鄉興農路196巷7弄8號之1號',
+    hours: '10:00–22:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉興農路196巷7弄8號之1號',
+    imageUrl: ''
+  },
+  {
+    name: '金車礁溪蘭花園附設動植物生態館',
+    address: '262宜蘭縣礁溪鄉奇立丹路103-1號',
+    hours: '08:00–17:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉奇立丹路103-1號',
+    imageUrl: ''
+  },
+  {
+    name: '宜蘭縣礁溪親子館',
+    address: '262304宜蘭縣礁溪鄉育龍路71號b1',
+    hours: '09:00–12:00、13:30–16:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉育龍路71號b1',
+    imageUrl: ''
+  },
+  {
+    name: '光腳ㄚ親親魚Fish SPA',
+    address: '262宜蘭縣礁溪鄉仁愛路19巷18號溝公園公廁旁',
+    hours: '10:00–21:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉仁愛路19巷18號溝公園公廁旁',
+    imageUrl: ''
+  },
+  {
+    name: '甲鳥園',
+    address: '262宜蘭縣礁溪鄉開蘭路209號',
+    hours: '09:00–18:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉開蘭路209號',
+    imageUrl: ''
+  },
+  {
+    name: '宜蘭忍者村',
+    address: '262宜蘭縣礁溪鄉匏杓崙路95-6號',
+    hours: '09:00–17:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉匏杓崙路95-6號',
+    imageUrl: ''
+  },
+  {
+    name: '六隻蝦釣蝦場',
+    address: '262宜蘭縣礁溪鄉玉石路44-2號',
+    hours: '10:30–18:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉石路44-2號',
+    imageUrl: ''
+  },
+  {
+    name: '金車生技水產養殖研發中心',
+    address: '262宜蘭縣礁溪鄉淇武蘭路162-13號',
+    hours: '08:00–17:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路162-13號',
+    imageUrl: ''
+  },
+  {
+    name: '聯全麻糬手作概念館',
+    address: '262宜蘭縣礁溪鄉淇武蘭路110之5號',
+    hours: '09:30–18:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉淇武蘭路110之5號',
+    imageUrl: ''
+  },
+  {
+    name: '回巢農場',
+    address: '262宜蘭縣礁溪鄉大塭路18-17號',
+    hours: '09:00–17:00',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路18-17號',
+    imageUrl: ''
+  },
+  {
+    name: '宜蘭縣礁溪鄉礁溪國民小學',
+    address: '262宜蘭縣礁溪鄉礁溪路四段135號',
+    hours: '07:00–16:30',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段135號',
+    imageUrl: ''
+  },
+  {
+    name: '宜蘭縣礁溪鄉龍潭國民小學',
+    address: '26242宜蘭縣礁溪鄉育龍路71號',
+    hours: '06:30–16:30',
+    phone: '',
+    category: '景點',
+    mapLink: 'https://maps.google.com/?q=26242宜蘭縣礁溪鄉育龍路71號',
+    imageUrl: ''
+  },
+  // 餐廳
+  {
+    name: '皇家花園餐廳',
+    address: '262宜蘭縣礁溪鄉礁溪路七段109號',
+    hours: '11:00–21:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段109號',
+    imageUrl: ''
+  },
+  {
+    name: '鮮九鼎親子釣蝦-餐廳',
+    address: '262宜蘭縣礁溪鄉溫泉路85號1樓',
+    hours: '14:00–23:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路85號1樓',
+    imageUrl: ''
+  },
+  {
+    name: '水鹿咖啡親子館',
+    address: '262宜蘭縣礁溪鄉塭底路3-15號',
+    hours: '10:00–19:30',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉塭底路3-15號',
+    imageUrl: ''
+  },
+  {
+    name: '大塭休閒農場/蘭陽蟳屋餐廳',
+    address: '262宜蘭縣礁溪鄉玉龍路二段497號',
+    hours: '11:00–14:00、17:00–21:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段497號',
+    imageUrl: ''
+  },
+  {
+    name: '吸貓咖啡館',
+    address: '262宜蘭縣礁溪鄉三路113號',
+    hours: '11:00–17:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉三路113號',
+    imageUrl: ''
+  },
+  {
+    name: '山穀裏',
+    address: '262宜蘭縣礁溪鄉林尾路150-10號',
+    hours: '10:30–17:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路150-10號',
+    imageUrl: ''
+  },
+  {
+    name: 'Party 泰烤魚餐廳',
+    address: '262宜蘭縣礁溪鄉白雲一路28巷1之2號',
+    hours: '11:30–15:30、17:00–20:30',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉白雲一路28巷1之2號',
+    imageUrl: ''
+  },
+  {
+    name: '寵物空間-DOG.SPACE',
+    address: '262宜蘭縣礁溪鄉大塭路19之8號',
+    hours: '11:00–17:30',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路19之8號',
+    imageUrl: ''
+  },
+  {
+    name: '蒔花咖啡',
+    address: '26249宜蘭縣礁溪鄉十六結路23之17號',
+    hours: '10:00–18:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=26249宜蘭縣礁溪鄉十六結路23之17號',
+    imageUrl: ''
+  },
+  {
+    name: '快炒樂室',
+    address: '262宜蘭縣礁溪鄉健康一街20號',
+    hours: '11:30–14:00、17:00–21:30',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉健康一街20號',
+    imageUrl: ''
+  },
+  {
+    name: 'Amaze兔子迷宮',
+    address: '262宜蘭縣礁溪鄉林尾路42-9號',
+    hours: '10:00–19:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路42-9號',
+    imageUrl: ''
+  },
+  {
+    name: '礁溪漁田村',
+    address: '262宜蘭縣礁溪鄉玉龍路一段498號',
+    hours: '11:30–14:30、17:30–20:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路一段498號',
+    imageUrl: ''
+  },
+  {
+    name: '里海咖啡',
+    address: '262宜蘭縣礁溪鄉玉龍路二段406號',
+    hours: '11:30–16:00、17:30–20:30',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段406號',
+    imageUrl: ''
+  },
+  {
+    name: '龍爺鳳娘會館',
+    address: '262宜蘭縣礁溪鄉大塭路34-5號一樓',
+    hours: '11:30–14:00、17:30–20:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路34-5號一樓',
+    imageUrl: ''
+  },
+  {
+    name: '八方漁養殖場',
+    address: '262宜蘭縣礁溪鄉大塭路51-2號',
+    hours: '09:00–22:00',
+    phone: '',
+    category: '餐廳',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大塭路51-2號',
+    imageUrl: ''
+  }
+];
+
+// 根據關鍵字搜尋（搜尋店名和地址）
+function searchJiaoxiPlaces(keyword) {
+  if (!keyword) return places;
+  
+  const lowerKeyword = keyword.toLowerCase();
+  return places.filter(place => 
+    place.name.toLowerCase().includes(lowerKeyword) ||
+    place.address.toLowerCase().includes(lowerKeyword)
+  );
+}
+
+// 根據分類搜尋
+function searchJiaoxiPlacesByCategory(category) {
+  if (!category) return places;
+  
+  const lowerCategory = category.toLowerCase();
+  return places.filter(place => 
+    place.category.toLowerCase().includes(lowerCategory)
+  );
+}
+
+// 取得所有景點和餐廳
+function getAllJiaoxiPlaces() {
+  return places;
+}
+
+// 取得景點
+function getAttractions() {
+  return places.filter(place => place.category === '景點');
+}
+
+// 取得餐廳
+function getRestaurants() {
+  return places.filter(place => place.category === '餐廳');
+}
+
+// 取得數量
+function getJiaoxiPlacesCount() {
+  return places.length;
+}
+
+// 取得景點數量
+function getAttractionsCount() {
+  return places.filter(place => place.category === '景點').length;
+}
+
+// 取得餐廳數量
+function getRestaurantsCount() {
+  return places.filter(place => place.category === '餐廳').length;
+}
+
+// 獲取單一店家詳細資訊（純文字版）
+function getJiaoxiPlaceDetail(placeName) {
+  const place = places.find(p => 
+    p.name.includes(placeName) || 
+    placeName.includes(p.name)
+  );
+  
+  if (!place) return null;
+  
+  let categoryEmoji = place.category === '景點' ? '🏞️' : '🍽️';
+  
+  let detail = `${categoryEmoji} ${place.name}\n`;
+  detail += `━━━━━━━━━━━━\n`;
+  detail += `📂 ${place.category}\n`;
+  detail += `📍 ${place.address}\n`;
+  detail += `🕐 ${place.hours}\n`;
+  if (place.phone) detail += `📞 ${place.phone}\n`;
+  detail += `🔗 ${place.mapLink}`;
+  
+  return detail;
+}
+
+// 獲取單一店家詳細資訊（包含圖片）- 回傳 Line 訊息格式
+function getJiaoxiPlaceDetailWithImage(placeName) {
+  const place = places.find(p => 
+    p.name.includes(placeName) || 
+    placeName.includes(p.name)
+  );
+  
+  if (!place) return null;
+  
+  const categoryEmoji = place.category === '景點' ? '🏞️' : '🍽️';
+  const textMessage = `${categoryEmoji} ${place.name}\n━━━━━━━━━━━━\n📂 ${place.category}\n📍 ${place.address}\n🕐 ${place.hours}\n🔗 ${place.mapLink}`;
+  
+  // 如果有圖片網址，回傳包含圖片的訊息
+  if (place.imageUrl) {
+    return {
+      type: 'flex',
+      altText: place.name,
+      contents: {
+        type: 'bubble',
+        hero: {
+          type: 'image',
+          url: place.imageUrl,
+          size: 'full',
+          aspectRatio: '20:13',
+          aspectMode: 'cover'
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: `${categoryEmoji} ${place.name}`,
+              weight: 'bold',
+              size: 'xl'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'lg',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '📂',
+                      size: 'sm'
+                    },
+                    {
+                      type: 'text',
+                      text: place.category,
+                      size: 'sm',
+                      wrap: true,
+                      flex: 1
+                    }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '📍',
+                      size: 'sm'
+                    },
+                    {
+                      type: 'text',
+                      text: place.address,
+                      size: 'sm',
+                      wrap: true,
+                      flex: 1
+                    }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '🕐',
+                      size: 'sm'
+                    },
+                    {
+                      type: 'text',
+                      text: place.hours,
+                      size: 'sm',
+                      wrap: true,
+                      flex: 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'link',
+              height: 'sm',
+              action: {
+                type: 'uri',
+                label: '查看地圖',
+                uri: place.mapLink
+              }
+            }
+          ]
+        }
+      }
+    };
+  }
+  
+  // 沒有圖片則回傳純文字
+  return {
+    type: 'text',
+    text: textMessage
+  };
+}
+
+// 格式化景點和餐廳訊息
+function formatJiaoxiPlacesMessage(places, title = '景點與餐廳') {
+  if (!places || places.length === 0) {
+    return '🏞️ 找不到相關的景點或餐廳\n\n💡 提示：\n• 輸入「礁溪景點」查看所有景點\n• 輸入「礁溪餐廳」查看所有餐廳\n• 輸入「礁溪景點 名稱」搜尋特定景點\n• 輸入「礁溪餐廳 名稱」搜尋特定餐廳';
+  }
+
+  let message = `🏞️ 礁溪${title}列表\n`;
+  message += '━━━━━━━━━━━━\n\n';
+  
+  const displayPlaces = places.slice(0, 30);
+  
+  displayPlaces.forEach((place, index) => {
+    const emoji = place.category === '景點' ? '🏞️' : '🍽️';
+    message += `${index + 1}. ${emoji} ${place.name}\n`;
+  });
+  
+  if (places.length > 30) {
+    message += `\n📊 還有 ${places.length - 30} 個地點\n`;
+    message += `💡 輸入「礁溪景點 名稱」搜尋特定景點`;
+  } else {
+    message += `\n📝 共 ${places.length} 個地點\n`;
+    message += `💡 輸入「礁溪景點 名稱」或「礁溪餐廳 名稱」搜尋詳細資訊`;
+  }
+  
+  message += `\n━━━━━━━━━━━━\n🔍 例如：礁溪景點 甲鳥園 或 礁溪餐廳 里海咖啡`;
+  
+  return message;
+}
+
+module.exports = {
+  getAllJiaoxiPlaces,
+  getJiaoxiPlacesCount,
+  getAttractions,
+  getAttractionsCount,
+  getRestaurants,
+  getRestaurantsCount,
+  searchJiaoxiPlaces,
+  searchJiaoxiPlacesByCategory,
+  getJiaoxiPlaceDetail,
+  getJiaoxiPlaceDetailWithImage,
+  formatJiaoxiPlacesMessage
+};
