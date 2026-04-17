@@ -678,8 +678,8 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
 }
 
 async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
-  // 處理「礁溪親子環境」主查詢
-  if (userMessage === '礁溪親子環境') {
+  // 只處理「親子環境」主查詢，移除篩選功能
+  if (userMessage === '親子環境') {
     const allPlaces = familyEnvironmentData.getAllFamilyEnvironment();
     
     userSessions.set(userId, {
@@ -689,20 +689,8 @@ async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
       page: 1
     });
     
-    const textMessage = formatShopMessageWithPagination(allPlaces, 1, '礁溪親子環境', '礁溪');
+    const textMessage = formatShopMessageWithPagination(allPlaces, 1, '親子環境', '礁溪');
     return client.replyMessage(replyToken, { type: 'text', text: textMessage });
-  }
-  
- 
-      
-      const textMessage = formatShopMessageWithPagination(filtered, 1, `礁溪親子環境-${subcategory}`, '礁溪');
-      return client.replyMessage(replyToken, { type: 'text', text: textMessage });
-    } else {
-      return client.replyMessage(replyToken, {
-        type: 'text',
-        text: `🔍 找不到「${subcategory}」分類的礁溪親子環境地點\n\n💡 可用的分類：\n🏞️ 景點分類：公園、體驗館、休閒農場、釣蝦場、生態館、親子館、觀光工廠\n🍽️ 餐廳分類：親子餐廳、咖啡廳、海鮮餐廳、中式餐廳、泰式餐廳、寵物餐廳、快炒、景觀餐廳`
-      });
-    }
   }
   
   return null;
@@ -736,7 +724,7 @@ async function handleShopSearch(userMessage, replyToken, userId) {
   if (results.length === 0) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「親子環境」查看所有親子景點與餐廳\n• 輸入「親子環境 景點」只看景點\n• 輸入「親子環境 餐廳」只看餐廳\n• 輸入「親子環境 公園」依分類篩選\n• 或直接輸入名稱搜尋`
+      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「親子環境」查看所有親子景點與餐廳\n• 或直接輸入名稱搜尋`
     });
   }
   
@@ -772,9 +760,6 @@ async function handlePagination(userMessage, replyToken, userId) {
   else if (type === 'lunch') typeName = '午餐';
   else if (type === 'dinner') typeName = '晚餐';
   else if (type === 'familyEnvironment') typeName = '親子環境';
-  else if (type === 'familyEnvironmentAttractions') typeName = '親子環境-景點';
-  else if (type === 'familyEnvironmentRestaurants') typeName = '親子環境-餐廳';
-  else if (type === 'familyEnvironmentFiltered') typeName = `親子環境-${session.filter || ''}`;
   else typeName = '查詢結果';
   
   const totalPages = Math.ceil(shops.length / 30);
@@ -789,7 +774,7 @@ async function handlePagination(userMessage, replyToken, userId) {
     } else {
       return client.replyMessage(replyToken, {
         type: 'text',
-        text: `📄 已經是最後一頁了！\n\n💡 輸入「${region}${typeName.replace('-', '')}」重新查看`
+        text: `📄 已經是最後一頁了！\n\n💡 輸入「${region}${typeName}」重新查看`
       });
     }
   }
@@ -847,8 +832,8 @@ async function handleEvent(event) {
     return;
   }
 
-  // 親子環境查詢（包含各種篩選條件）
-  if (userMessage.startsWith('親子環境')) {
+  // 親子環境查詢（只處理主查詢）
+  if (userMessage === '親子環境') {
     await handleFamilyEnvironmentQuery(userMessage, event.replyToken, userId);
     return;
   }
@@ -875,7 +860,7 @@ async function handleEvent(event) {
 
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「親子環境」查詢親子景點與餐廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、甲鳥園、水鹿咖啡\n\n🔍 親子環境篩選：\n   「親子環境 景點」只看景點\n   「親子環境 餐廳」只看餐廳\n   「親子環境 公園」依分類篩選\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「親子環境」查詢親子景點與餐廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、甲鳥園、水鹿咖啡\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
