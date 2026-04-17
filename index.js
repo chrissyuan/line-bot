@@ -6,6 +6,7 @@ const line = require('@line/bot-sdk');
 const jiaoxiBreakfastData = require('./data/Jiaoxi/breakfastShops');
 const jiaoxiLunchData = require('./data/Jiaoxi/lunchShops');
 const jiaoxiDinnerData = require('./data/Jiaoxi/dinnerShops');
+const jiaoxiPlacesData = require('./data/Jiaoxi/attractionsAndRestaurants');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -561,6 +562,14 @@ async function getDebugInfo() {
     debugText += `\n🍽️ 礁溪晚餐店資料庫\n`;
     debugText += `店家總數: ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間\n`;
 
+    // 加入礁溪景點統計資訊
+    debugText += `\n🏞️ 礁溪景點資料庫\n`;
+    debugText += `景點總數: ${jiaoxiPlacesData.getAttractionsCount()} 個\n`;
+
+    // 加入礁溪餐廳統計資訊
+    debugText += `\n🍽️ 礁溪餐廳資料庫\n`;
+    debugText += `餐廳總數: ${jiaoxiPlacesData.getRestaurantsCount()} 間\n`;
+
     if (debugText.length > 4900) {
       debugText = debugText.substring(0, 4900) + '...';
     }
@@ -584,17 +593,28 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
   const pageShops = shops.slice(startIndex, endIndex);
   const totalPages = Math.ceil(shops.length / itemsPerPage);
   
-  const emoji = mealType === '早餐' ? '🍳' : (mealType === '午餐' ? '🍱' : '🍽️');
+  let emoji = '🍳';
+  if (mealType === '早餐') emoji = '🍳';
+  else if (mealType === '午餐') emoji = '🍱';
+  else if (mealType === '晚餐') emoji = '🍽️';
+  else if (mealType === '景點') emoji = '🏞️';
+  else if (mealType === '餐廳') emoji = '🍽️';
+  else if (mealType === '景點與餐廳') emoji = '🏞️';
   
-  let message = `${emoji} ${region}${mealType}店列表 (第${page}/${totalPages}頁)\n`;
+  let message = `${emoji} ${region}${mealType}列表 (第${page}/${totalPages}頁)\n`;
   message += '━━━━━━━━━━━━\n\n';
   
   pageShops.forEach((shop, index) => {
     const globalIndex = startIndex + index + 1;
-    message += `${globalIndex}. ${shop.name}\n`;
+    const itemEmoji = shop.category === '景點' ? '🏞️' : (shop.category === '餐廳' ? '🍽️' : '');
+    if (itemEmoji) {
+      message += `${globalIndex}. ${itemEmoji} ${shop.name}\n`;
+    } else {
+      message += `${globalIndex}. ${shop.name}\n`;
+    }
   });
   
-  message += `\n📝 顯示 ${startIndex + 1}-${Math.min(endIndex, shops.length)} / 共 ${shops.length} 間店家\n`;
+  message += `\n📝 顯示 ${startIndex + 1}-${Math.min(endIndex, shops.length)} / 共 ${shops.length} 個地點\n`;
   message += '━━━━━━━━━━━━\n';
   
   if (totalPages > 1) {
@@ -607,8 +627,8 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
     }
   }
   
-  message += `💡 輸入「${region}${mealType}」查看所有店家\n`;
-  message += `🔍 或直接輸入店名搜尋（例如：酷克伊早餐）`;
+  message += `💡 輸入「${region}${mealType}」查看所有${mealType}\n`;
+  message += `🔍 或直接輸入名稱搜尋（例如：甲鳥園、里海咖啡）`;
   
   return message;
 }
@@ -617,11 +637,16 @@ function formatShopMessageWithPagination(shops, page, mealType, region = '礁溪
  * 建立店家詳細資訊的 Flex Message（點擊按鈕直接開啟 Google Maps 導航）
  */
 function createShopDetailFlexMessage(shop, mealType) {
-  const emoji = mealType === '早餐' ? '🍳' : (mealType === '午餐' ? '🍱' : '🍽️');
+  let emoji = '🍳';
+  if (mealType === '早餐') emoji = '🍳';
+  else if (mealType === '午餐') emoji = '🍱';
+  else if (mealType === '晚餐') emoji = '🍽️';
+  else if (mealType === '景點') emoji = '🏞️';
+  else if (mealType === '餐廳') emoji = '🍽️';
   
   // 將地址轉換為 Google Maps 導航連結（使用 encodeURIComponent 確保中文正常）
- const query = encodeURIComponent(`${shop.name} ${shop.address}`);
-const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+  const query = encodeURIComponent(`${shop.name} ${shop.address}`);
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
   
   // 建立 body 內容
   const bodyContents = [
@@ -658,6 +683,19 @@ const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
     }
   ];
   
+  // 如果有分類，加入分類欄位
+  if (shop.category) {
+    const categoryEmoji = shop.category === '景點' ? '🏞️' : '🍽️';
+    bodyContents[1].contents.unshift({
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        { type: 'text', text: '📂', size: 'md', flex: 0 },
+        { type: 'text', text: `${categoryEmoji} ${shop.category}`, size: 'sm', wrap: true, flex: 1 }
+      ]
+    });
+  }
+  
   // 如果有電話，加入電話欄位
   if (shop.phone && shop.phone !== '') {
     bodyContents[1].contents.push({
@@ -673,15 +711,15 @@ const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
   // 建立 footer 按鈕 - 直接使用 Google Maps 導航連結
   const footerContents = [
     {
-  type: 'button',
-  style: 'secondary',
-  height: 'sm',
-  action: {
-    type: 'uri',
-    label: '📋 查看完整店家資訊',
-    uri: mapUrl
-  }
-}
+      type: 'button',
+      style: 'secondary',
+      height: 'sm',
+      action: {
+        type: 'uri',
+        label: '📋 查看完整店家資訊',
+        uri: mapUrl
+      }
+    }
   ];
   
   // 建立 Flex Message
@@ -794,6 +832,54 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
   return null;
 }
 
+/**
+ * 處理礁溪景點查詢
+ */
+async function handleJiaoxiAttractionsQuery(userMessage, replyToken, userId) {
+  if (userMessage === '礁溪景點') {
+    const allAttractions = jiaoxiPlacesData.getAttractions();
+    
+    userSessions.set(userId, {
+      type: 'attractions',
+      region: '礁溪',
+      shops: allAttractions,
+      page: 1
+    });
+    
+    const textMessage = formatShopMessageWithPagination(allAttractions, 1, '景點', '礁溪');
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: textMessage
+    });
+  }
+  
+  return null;
+}
+
+/**
+ * 處理礁溪餐廳查詢
+ */
+async function handleJiaoxiRestaurantsQuery(userMessage, replyToken, userId) {
+  if (userMessage === '礁溪餐廳') {
+    const allRestaurants = jiaoxiPlacesData.getRestaurants();
+    
+    userSessions.set(userId, {
+      type: 'restaurants',
+      region: '礁溪',
+      shops: allRestaurants,
+      page: 1
+    });
+    
+    const textMessage = formatShopMessageWithPagination(allRestaurants, 1, '餐廳', '礁溪');
+    return client.replyMessage(replyToken, {
+      type: 'text',
+      text: textMessage
+    });
+  }
+  
+  return null;
+}
+
 // ==================== 通用搜尋函數 ====================
 
 /**
@@ -817,10 +903,25 @@ async function handleShopSearch(userMessage, replyToken, userId) {
     mealType = '晚餐';
   }
   
+  // 如果早餐、午餐、晚餐都沒找到，搜尋景點和餐廳
+  if (results.length === 0) {
+    results = jiaoxiPlacesData.searchJiaoxiPlaces(userMessage);
+    shopType = 'places';
+    
+    // 判斷是景點還是餐廳
+    if (results.length > 0 && results[0].category === '景點') {
+      mealType = '景點';
+    } else if (results.length > 0 && results[0].category === '餐廳') {
+      mealType = '餐廳';
+    } else {
+      mealType = '景點與餐廳';
+    }
+  }
+  
   if (results.length === 0) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: `🔍 找不到「${userMessage}」相關的店家\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 或直接輸入店名搜尋`
+      text: `🔍 找不到「${userMessage}」相關的店家\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「礁溪景點」查看所有景點\n• 輸入「礁溪餐廳」查看所有餐廳\n• 或直接輸入店名搜尋`
     });
   }
   
@@ -856,7 +957,7 @@ async function handlePagination(userMessage, replyToken, userId) {
   if (!session || !session.shops) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」或「礁溪晚餐」開始查詢，或直接輸入店名搜尋'
+      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」、「礁溪晚餐」、「礁溪景點」或「礁溪餐廳」開始查詢，或直接輸入店名搜尋'
     });
   }
   
@@ -865,6 +966,14 @@ async function handlePagination(userMessage, replyToken, userId) {
   if (type === 'breakfast') mealType = '早餐';
   else if (type === 'lunch') mealType = '午餐';
   else if (type === 'dinner') mealType = '晚餐';
+  else if (type === 'attractions') mealType = '景點';
+  else if (type === 'restaurants') mealType = '餐廳';
+  else if (type === 'places') {
+    // 根據第一個項目的類別判斷
+    if (shops.length > 0 && shops[0].category === '景點') mealType = '景點';
+    else if (shops.length > 0 && shops[0].category === '餐廳') mealType = '餐廳';
+    else mealType = '景點與餐廳';
+  }
   
   const totalPages = Math.ceil(shops.length / 30);
   
@@ -953,6 +1062,18 @@ async function handleEvent(event) {
     return;
   }
 
+  // 礁溪景點查詢
+  if (userMessage === '礁溪景點') {
+    await handleJiaoxiAttractionsQuery(userMessage, event.replyToken, userId);
+    return;
+  }
+
+  // 礁溪餐廳查詢
+  if (userMessage === '礁溪餐廳') {
+    await handleJiaoxiRestaurantsQuery(userMessage, event.replyToken, userId);
+    return;
+  }
+
   // 天氣查詢
   if (userMessage.includes('天氣') || userMessage.includes('宜蘭')) {
     try {
@@ -974,7 +1095,7 @@ async function handleEvent(event) {
   }
 
   // 直接輸入店名搜尋
-  const excludeKeywords = ['天氣', '宜蘭', '早餐', '午餐', '晚餐', '下一頁', '上一頁', '!debug'];
+  const excludeKeywords = ['天氣', '宜蘭', '早餐', '午餐', '晚餐', '景點', '餐廳', '下一頁', '上一頁', '!debug'];
   const isExcluded = excludeKeywords.some(keyword => userMessage.includes(keyword));
   
   if (!isExcluded && userMessage.trim().length > 0) {
@@ -985,7 +1106,7 @@ async function handleEvent(event) {
   // 預設回應
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n\n📖 分頁功能：\n   查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入店名搜尋：\n   例如：酷克伊早餐、甕窯雞\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n🏞️ 「礁溪景點」查詢礁溪景點\n🍽️ 「礁溪餐廳」查詢礁溪餐廳\n\n📖 分頁功能：\n   查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入店名搜尋：\n   例如：酷克伊早餐、甲鳥園、里海咖啡\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
@@ -1006,6 +1127,8 @@ app.listen(PORT, () => {
   console.log(`礁溪早餐店資料庫已載入，共 ${jiaoxiBreakfastData.getJiaoxiBreakfastShopsCount()} 間店家`);
   console.log(`礁溪午餐店資料庫已載入，共 ${jiaoxiLunchData.getJiaoxiLunchShopsCount()} 間店家`);
   console.log(`礁溪晚餐店資料庫已載入，共 ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間店家`);
+  console.log(`礁溪景點資料庫已載入，共 ${jiaoxiPlacesData.getAttractionsCount()} 個景點`);
+  console.log(`礁溪餐廳資料庫已載入，共 ${jiaoxiPlacesData.getRestaurantsCount()} 間餐廳`);
 });
 
 module.exports = app;
