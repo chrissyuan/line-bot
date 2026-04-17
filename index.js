@@ -724,7 +724,7 @@ async function handleShopSearch(userMessage, replyToken, userId) {
   if (results.length === 0) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「親子環境」查看所有親子景點與餐廳\n• 或直接輸入名稱搜尋`
+      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「礁溪親子環境」查看所有親子景點與餐廳\n• 或直接輸入名稱搜尋`
     });
   }
   
@@ -750,7 +750,7 @@ async function handlePagination(userMessage, replyToken, userId) {
   if (!session || !session.shops) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」、「礁溪晚餐」或「親子環境」開始查詢，或直接輸入名稱搜尋'
+      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」、「礁溪晚餐」或「礁溪親子環境」開始查詢，或直接輸入名稱搜尋'
     });
   }
   
@@ -860,7 +860,7 @@ async function handleEvent(event) {
 
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「親子環境」查詢親子景點與餐廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、甲鳥園、水鹿咖啡\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「礁溪親子環境」查詢親子景點與餐廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、甲鳥園、水鹿咖啡\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
