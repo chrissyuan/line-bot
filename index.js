@@ -679,7 +679,7 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
 
 async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
   // 只處理「親子環境」主查詢，移除篩選功能
-  if (userMessage === '親子環境') {
+  if (userMessage === '礁溪親子環境') {
     const allPlaces = familyEnvironmentData.getAllFamilyEnvironment();
     
     userSessions.set(userId, {
@@ -833,7 +833,7 @@ async function handleEvent(event) {
   }
 
   // 親子環境查詢（只處理主查詢）
-  if (userMessage === '親子環境') {
+  if (userMessage === '礁溪親子環境') {
     await handleFamilyEnvironmentQuery(userMessage, event.replyToken, userId);
     return;
   }
