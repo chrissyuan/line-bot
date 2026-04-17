@@ -245,7 +245,7 @@ const places = [
     imageUrl: ''
   },
   {
-    name: '寵物空間-DOG.SPACE',
+    name: '寵物空間',
     address: '262宜蘭縣礁溪鄉大塭路19之8號',
     hours: '11:00–17:30',
     phone: '',
