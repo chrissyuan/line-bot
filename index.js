@@ -7,6 +7,7 @@ const jiaoxiBreakfastData = require('./data/Jiaoxi/breakfastShops');
 const jiaoxiLunchData = require('./data/Jiaoxi/lunchShops');
 const jiaoxiDinnerData = require('./data/Jiaoxi/dinnerShops');
 const familyEnvironmentData = require('./data/Jiaoxi/familyEnvironment');
+const drinkAndDessertData = require('./data/Jiaoxi/drinkAndDessert');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -450,6 +451,13 @@ async function getDebugInfo() {
     debugText += `🏞️ 景點: ${familyEnvironmentData.getAttractionsCount()} 個\n`;
     debugText += `🍽️ 餐廳: ${familyEnvironmentData.getRestaurantsCount()} 間\n`;
 
+    debugText += `\n🥤 礁溪飲料點心下午茶資料庫\n`;
+    const stats = drinkAndDessertData.getCategoryStats();
+    debugText += `總店家數: ${stats.總數} 個\n`;
+    debugText += `🥤 飲料店: ${stats.飲料店} 間\n`;
+    debugText += `☕ 咖啡廳: ${stats.咖啡廳} 間\n`;
+    debugText += `🍰 點心: ${stats.點心} 個\n`;
+
     if (debugText.length > 4900) {
       debugText = debugText.substring(0, 4900) + '...';
     }
@@ -475,6 +483,7 @@ function formatShopMessageWithPagination(shops, page, typeName, region = '礁溪
   else if (typeName === '午餐') emoji = '🍱';
   else if (typeName === '晚餐') emoji = '🍽️';
   else if (typeName === '親子環境') emoji = '👨‍👩‍👧‍👦';
+  else if (typeName === '飲料點心下午茶') emoji = '🥤';
   
   let message = `${emoji} ${region}${typeName}列表 (第${page}/${totalPages}頁)\n`;
   message += '━━━━━━━━━━━━\n\n';
@@ -482,7 +491,12 @@ function formatShopMessageWithPagination(shops, page, typeName, region = '礁溪
   pageShops.forEach((shop, index) => {
     const globalIndex = startIndex + index + 1;
     if (shop.subcategory) {
-      const subEmoji = familyEnvironmentData.getSubcategoryEmoji(shop.subcategory);
+      let subEmoji = '';
+      if (typeName === '親子環境') {
+        subEmoji = familyEnvironmentData.getSubcategoryEmoji(shop.subcategory);
+      } else if (typeName === '飲料點心下午茶') {
+        subEmoji = drinkAndDessertData.getSubcategoryEmoji(shop.subcategory);
+      }
       message += `${globalIndex}. ${shop.name}\n`;
       message += `   ${subEmoji} ${shop.subcategory}\n`;
     } else {
@@ -515,6 +529,7 @@ function createShopDetailFlexMessage(shop, typeName) {
   else if (typeName === '午餐') emoji = '🍱';
   else if (typeName === '晚餐') emoji = '🍽️';
   else if (typeName === '親子環境') emoji = '👨‍👩‍👧‍👦';
+  else if (typeName === '飲料點心下午茶') emoji = '🥤';
   
   const query = encodeURIComponent(`${shop.name} ${shop.address}`);
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
@@ -554,8 +569,15 @@ function createShopDetailFlexMessage(shop, typeName) {
   ];
   
   if (shop.category) {
-    const categoryEmoji = shop.category === '景點' ? '🏞️' : '🍽️';
-    const subEmoji = shop.subcategory ? familyEnvironmentData.getSubcategoryEmoji(shop.subcategory) : '';
+    let categoryEmoji = '';
+    let subEmoji = '';
+    if (typeName === '親子環境') {
+      categoryEmoji = shop.category === '景點' ? '🏞️' : '🍽️';
+      subEmoji = familyEnvironmentData.getSubcategoryEmoji(shop.subcategory);
+    } else if (typeName === '飲料點心下午茶') {
+      categoryEmoji = drinkAndDessertData.getCategoryEmoji(shop.category);
+      subEmoji = drinkAndDessertData.getSubcategoryEmoji(shop.subcategory);
+    }
     bodyContents[1].contents.unshift({
       type: 'box',
       layout: 'horizontal',
@@ -678,7 +700,6 @@ async function handleJiaoxiDinnerQuery(userMessage, replyToken, userId) {
 }
 
 async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
-  // 只處理「親子環境」主查詢，移除篩選功能
   if (userMessage === '礁溪親子環境') {
     const allPlaces = familyEnvironmentData.getAllFamilyEnvironment();
     
@@ -692,7 +713,23 @@ async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
     const textMessage = formatShopMessageWithPagination(allPlaces, 1, '親子環境', '礁溪');
     return client.replyMessage(replyToken, { type: 'text', text: textMessage });
   }
-  
+  return null;
+}
+
+async function handleDrinkAndDessertQuery(userMessage, replyToken, userId) {
+  if (userMessage === '飲料點心下午茶') {
+    const allPlaces = drinkAndDessertData.getAllDrinkAndDessert();
+    
+    userSessions.set(userId, {
+      type: 'drinkAndDessert',
+      region: '礁溪',
+      shops: allPlaces,
+      page: 1
+    });
+    
+    const textMessage = formatShopMessageWithPagination(allPlaces, 1, '飲料點心下午茶', '礁溪');
+    return client.replyMessage(replyToken, { type: 'text', text: textMessage });
+  }
   return null;
 }
 
@@ -721,10 +758,17 @@ async function handleShopSearch(userMessage, replyToken, userId) {
     typeName = '親子環境';
   }
   
+  // 如果親子環境也沒找到，搜尋飲料點心
+  if (results.length === 0) {
+    results = drinkAndDessertData.searchDrinkAndDessert(userMessage);
+    shopType = 'drinkAndDessert';
+    typeName = '飲料點心下午茶';
+  }
+  
   if (results.length === 0) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「礁溪親子環境」查看所有親子景點與餐廳\n• 或直接輸入名稱搜尋`
+      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「礁溪親子環境」查看所有親子景點與餐廳\n• 輸入「飲料點心下午茶」查看所有飲料店、咖啡廳、點心\n• 或直接輸入名稱搜尋`
     });
   }
   
@@ -750,7 +794,7 @@ async function handlePagination(userMessage, replyToken, userId) {
   if (!session || !session.shops) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」、「礁溪晚餐」或「礁溪親子環境」開始查詢，或直接輸入名稱搜尋'
+      text: '🔍 請先輸入「礁溪早餐」、「礁溪午餐」、「礁溪晚餐」、「礁溪親子環境」或「飲料點心下午茶」開始查詢，或直接輸入名稱搜尋'
     });
   }
   
@@ -760,6 +804,7 @@ async function handlePagination(userMessage, replyToken, userId) {
   else if (type === 'lunch') typeName = '午餐';
   else if (type === 'dinner') typeName = '晚餐';
   else if (type === 'familyEnvironment') typeName = '親子環境';
+  else if (type === 'drinkAndDessert') typeName = '飲料點心下午茶';
   else typeName = '查詢結果';
   
   const totalPages = Math.ceil(shops.length / 30);
@@ -832,9 +877,13 @@ async function handleEvent(event) {
     return;
   }
 
-  // 親子環境查詢（只處理主查詢）
   if (userMessage === '礁溪親子環境') {
     await handleFamilyEnvironmentQuery(userMessage, event.replyToken, userId);
+    return;
+  }
+
+  if (userMessage === '飲料點心下午茶') {
+    await handleDrinkAndDessertQuery(userMessage, event.replyToken, userId);
     return;
   }
 
@@ -850,7 +899,7 @@ async function handleEvent(event) {
     }
   }
 
-  const excludeKeywords = ['天氣', '宜蘭', '早餐', '午餐', '晚餐', '親子環境', '下一頁', '上一頁', '!debug'];
+  const excludeKeywords = ['天氣', '宜蘭', '早餐', '午餐', '晚餐', '親子環境', '飲料點心下午茶', '下一頁', '上一頁', '!debug'];
   const isExcluded = excludeKeywords.some(keyword => userMessage.includes(keyword));
   
   if (!isExcluded && userMessage.trim().length > 0) {
@@ -860,7 +909,7 @@ async function handleEvent(event) {
 
   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「礁溪親子環境」查詢親子景點與餐廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、甲鳥園、水鹿咖啡\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「礁溪親子環境」查詢親子景點與餐廳\n🥤 「飲料點心下午茶」查詢飲料店、咖啡廳、點心\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、星巴克、柯氏蔥油餅\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
@@ -881,6 +930,7 @@ app.listen(PORT, () => {
   console.log(`礁溪午餐店資料庫已載入，共 ${jiaoxiLunchData.getJiaoxiLunchShopsCount()} 間店家`);
   console.log(`礁溪晚餐店資料庫已載入，共 ${jiaoxiDinnerData.getJiaoxiDinnerShopsCount()} 間店家`);
   console.log(`礁溪親子環境資料庫已載入，共 ${familyEnvironmentData.getTotalCount()} 個地點（景點 ${familyEnvironmentData.getAttractionsCount()} 個，餐廳 ${familyEnvironmentData.getRestaurantsCount()} 間）`);
+  console.log(`🥤 礁溪飲料點心下午茶資料庫已載入，共 ${drinkAndDessertData.getTotalCount()} 個店家（飲料店 ${drinkAndDessertData.getDrinkShopsCount()} 間，咖啡廳 ${drinkAndDessertData.getCafesCount()} 間，點心 ${drinkAndDessertData.getDessertsCount()} 個）`);
 });
 
 module.exports = app;
