@@ -495,20 +495,8 @@ function formatShopMessageWithPagination(shops, page, typeName, region = '礁溪
   
   pageShops.forEach((shop, index) => {
     const globalIndex = startIndex + index + 1;
-    if (shop.subcategory) {
-      let subEmoji = '';
-      if (typeName === '親子環境') {
-        subEmoji = familyEnvironmentData.getSubcategoryEmoji(shop.subcategory);
-      } else if (typeName === '飲料點心下午茶') {
-        subEmoji = drinkAndDessertData.getSubcategoryEmoji(shop.subcategory);
-      } else if (typeName === '咖啡廳') {
-        subEmoji = jiaoxiCafeData.getSubcategoryEmoji(shop.subcategory);
-      }
-      message += `${globalIndex}. ${shop.name}\n`;
-      message += `   ${subEmoji} ${shop.subcategory}\n`;
-    } else {
-      message += `${globalIndex}. ${shop.name}\n`;
-    }
+    // 只顯示店家名稱，不顯示子分類
+    message += `${globalIndex}. ${shop.name}\n`;
   });
   
   message += `\n📝 顯示 ${startIndex + 1}-${Math.min(endIndex, shops.length)} / 共 ${shops.length} 個地點\n`;
