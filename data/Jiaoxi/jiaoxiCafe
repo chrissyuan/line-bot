@@ -1,0 +1,519 @@
+// data/Jiaoxi/jiaoxiCafe.js
+
+// 礁溪咖啡廳資料庫
+const cafes = [
+  {
+    name: '珈琲 方島',
+    address: '262宜蘭縣礁溪鄉礁溪路五段90巷2-1號之2',
+    hours: '11:00–17:30、18:30–21:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段90巷2-1號之2',
+    imageUrl: ''
+  },
+  {
+    name: '咖啡浴',
+    address: '262宜蘭縣礁溪鄉德陽街3號',
+    hours: '10:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽街3號',
+    imageUrl: ''
+  },
+  {
+    name: '工艺咖啡',
+    address: '262宜蘭縣礁溪鄉德陽街21之一號1樓',
+    hours: '11:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽街21之一號1樓',
+    imageUrl: ''
+  },
+  {
+    name: '森晴對樺',
+    address: '262002宜蘭縣礁溪鄉湯圍街一號',
+    hours: '11:30–19:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262002宜蘭縣礁溪鄉湯圍街一號',
+    imageUrl: ''
+  },
+  {
+    name: '萬記商行',
+    address: '262宜蘭縣礁溪鄉興農路266-3號',
+    hours: '10:30–17:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉興農路266-3號',
+    imageUrl: ''
+  },
+  {
+    name: 'MASLOW WALKER',
+    address: '26248宜蘭縣礁溪鄉溫泉路58號',
+    hours: '10:00–17:40',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=26248宜蘭縣礁溪鄉溫泉路58號',
+    imageUrl: ''
+  },
+  {
+    name: 'no other',
+    address: '262宜蘭縣礁溪鄉德陽路1號',
+    hours: '11:00–21:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽路1號',
+    imageUrl: ''
+  },
+  {
+    name: '河馬 Homa Coffee',
+    address: '262宜蘭縣礁溪鄉信義路71號',
+    hours: '10:30–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉信義路71號',
+    imageUrl: ''
+  },
+  {
+    name: '魚尾紋點心房',
+    address: '262宜蘭縣礁溪鄉中山路一段239號',
+    hours: '12:00–18:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '甜點咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路一段239號',
+    imageUrl: ''
+  },
+  {
+    name: '日光山茶屋',
+    address: '262002宜蘭縣礁溪鄉興農路322巷6號',
+    hours: '09:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '茶屋',
+    mapLink: 'https://maps.google.com/?q=262002宜蘭縣礁溪鄉興農路322巷6號',
+    imageUrl: ''
+  },
+  {
+    name: '抹茶山下',
+    address: '262宜蘭縣礁溪鄉林尾路42之25號',
+    hours: '10:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路42之25號',
+    imageUrl: ''
+  },
+  {
+    name: '戶室山 日式刨冰、咖啡',
+    address: '262宜蘭縣礁溪鄉礁溪路四段95號',
+    hours: '12:00–18:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '刨冰咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段95號',
+    imageUrl: ''
+  },
+  {
+    name: '甜點貓手作',
+    address: '262宜蘭縣礁溪鄉大忠路38號',
+    hours: '13:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '甜點咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大忠路38號',
+    imageUrl: ''
+  },
+  {
+    name: '定邦咖啡',
+    address: '262宜蘭縣礁溪鄉白雲二路173號',
+    hours: '12:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉白雲二路173號',
+    imageUrl: ''
+  },
+  {
+    name: '慕嶼商行',
+    address: '262宜蘭縣礁溪鄉中山路二段117-1號',
+    hours: '12:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '甜點咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉中山路二段117-1號',
+    imageUrl: ''
+  },
+  {
+    name: '佛光大學雲起咖啡',
+    address: '262宜蘭縣礁溪鄉林尾路160號',
+    hours: '11:00–21:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '校園咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路160號',
+    imageUrl: ''
+  },
+  {
+    name: '蒔花',
+    address: '26249宜蘭縣礁溪鄉十六結路23之17號',
+    hours: '10:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=26249宜蘭縣礁溪鄉十六結路23之17號',
+    imageUrl: ''
+  },
+  {
+    name: '小木屋咖啡館',
+    address: '262宜蘭縣礁溪鄉大忠路14號',
+    hours: '13:30–18:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大忠路14號',
+    imageUrl: ''
+  },
+  {
+    name: '時間到咖啡館',
+    address: '262宜蘭縣礁溪鄉公園路16-1號',
+    hours: '10:00–18:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉公園路16-1號',
+    imageUrl: ''
+  },
+  {
+    name: '杉杉來茈',
+    address: '262宜蘭縣礁溪鄉大忠路31號',
+    hours: '12:00–18:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉大忠路31號',
+    imageUrl: ''
+  },
+  {
+    name: 'Calmhere Caffe',
+    address: '262宜蘭縣礁溪鄉礁溪路七段103巷5號',
+    hours: '08:00–17:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路七段103巷5號',
+    imageUrl: ''
+  },
+  {
+    name: '地熱小姐',
+    address: '26247宜蘭縣礁溪鄉大忠路51號',
+    hours: '13:00–18:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '甜點咖啡',
+    mapLink: 'https://maps.google.com/?q=26247宜蘭縣礁溪鄉大忠路51號',
+    imageUrl: ''
+  },
+  {
+    name: '食糧洋行',
+    address: '262宜蘭縣礁溪鄉礁溪路六段133巷7號',
+    hours: '15:00–21:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路六段133巷7號',
+    imageUrl: ''
+  },
+  {
+    name: '黑宅',
+    address: '261宜蘭縣頭城鎮三和路616巷235弄47號',
+    hours: '',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '景觀咖啡',
+    mapLink: 'https://maps.google.com/?q=261宜蘭縣頭城鎮三和路616巷235弄47號',
+    imageUrl: ''
+  },
+  {
+    name: '華金斯太太',
+    address: '262宜蘭縣礁溪鄉十六結路103之五號',
+    hours: '10:30–17:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉十六結路103之五號',
+    imageUrl: ''
+  },
+  {
+    name: 'Mr. Brown 伯朗咖啡館',
+    address: '262宜蘭縣礁溪鄉玉石路44-5號',
+    hours: '08:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '連鎖咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉石路44-5號',
+    imageUrl: ''
+  },
+  {
+    name: 'Louisa Coffee 路易莎咖啡',
+    address: '262宜蘭縣礁溪鄉礁溪路五段48號',
+    hours: '08:00–17:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '連鎖咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段48號',
+    imageUrl: ''
+  },
+  {
+    name: '幸福咖啡',
+    address: '262宜蘭縣礁溪鄉公園路72號',
+    hours: '10:00–19:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉公園路72號',
+    imageUrl: ''
+  },
+  {
+    name: '星巴克',
+    address: '262宜蘭縣礁溪鄉礁溪路五段118號',
+    hours: '07:30–21:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '連鎖咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路五段118號',
+    imageUrl: ''
+  },
+  {
+    name: '空ㄟ農場',
+    address: '262宜蘭縣礁溪鄉白石腳路169號',
+    hours: '15:00–00:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '景觀咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉白石腳路169號',
+    imageUrl: ''
+  },
+  {
+    name: '青果果自家烘焙珈琲店',
+    address: '262宜蘭縣礁溪鄉奇峰街四號',
+    hours: '13:00–20:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '自家烘焙',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉奇峰街四號',
+    imageUrl: ''
+  },
+  {
+    name: '里海咖啡',
+    address: '262宜蘭縣礁溪鄉玉龍路二段406號',
+    hours: '11:30–16:00、17:30–20:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉玉龍路二段406號',
+    imageUrl: ''
+  },
+  {
+    name: 'Amaze兔子迷宮',
+    address: '262宜蘭縣礁溪鄉林尾路42-9號',
+    hours: '10:00–19:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '景觀咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路42-9號',
+    imageUrl: ''
+  },
+  {
+    name: '山穀裏',
+    address: '262宜蘭縣礁溪鄉林尾路150-10號',
+    hours: '10:30–17:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '景觀咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉林尾路150-10號',
+    imageUrl: ''
+  },
+  {
+    name: '驛本屋書店 Ekihonya',
+    address: '262宜蘭縣礁溪鄉德陽街11巷2號',
+    hours: '11:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '書店咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉德陽街11巷2號',
+    imageUrl: ''
+  },
+  {
+    name: '水鹿咖啡親子館',
+    address: '262宜蘭縣礁溪鄉塭底路3-15號',
+    hours: '10:00–19:30',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '親子咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉塭底路3-15號',
+    imageUrl: ''
+  },
+  {
+    name: '米球甜點工作室',
+    address: '262宜蘭縣礁溪鄉礁溪路四段133號巷8號',
+    hours: '',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '甜點咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉礁溪路四段133號巷8號',
+    imageUrl: ''
+  },
+  {
+    name: '阿甘咖啡',
+    address: '262宜蘭縣礁溪鄉和平路83號',
+    hours: '11:00–14:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉和平路83號',
+    imageUrl: ''
+  },
+  {
+    name: '吸貓咖啡館',
+    address: '262宜蘭縣礁溪鄉三路113號',
+    hours: '11:00–17:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '寵物咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉三路113號',
+    imageUrl: ''
+  },
+  {
+    name: '米堤亞果子舖',
+    address: '262宜蘭縣礁溪鄉信義路34巷21號',
+    hours: '',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '甜點咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉信義路34巷21號',
+    imageUrl: ''
+  },
+  {
+    name: '田塬藝文',
+    address: '262宜蘭縣礁溪鄉城內巷14號吳沙故居,四結國小正後方',
+    hours: '13:00–18:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉城內巷14號',
+    imageUrl: ''
+  },
+  {
+    name: 'Tomato Cafe',
+    address: '262宜蘭縣礁溪鄉溫泉路10號',
+    hours: '10:00–16:00',
+    phone: '',
+    category: '咖啡廳',
+    subcategory: '特色咖啡',
+    mapLink: 'https://maps.google.com/?q=262宜蘭縣礁溪鄉溫泉路10號',
+    imageUrl: ''
+  }
+];
+
+// 根據關鍵字搜尋
+function searchCafe(keyword) {
+  if (!keyword) return cafes;
+  
+  const lowerKeyword = keyword.toLowerCase();
+  return cafes.filter(cafe => 
+    cafe.name.toLowerCase().includes(lowerKeyword) ||
+    cafe.address.toLowerCase().includes(lowerKeyword) ||
+    cafe.subcategory.toLowerCase().includes(lowerKeyword)
+  );
+}
+
+// 取得所有咖啡廳
+function getAllCafes() {
+  return cafes;
+}
+
+// 取得數量
+function getCafeCount() {
+  return cafes.length;
+}
+
+// 獲取單一咖啡廳詳細資訊
+function getCafeDetail(cafeName) {
+  const cafe = cafes.find(c => 
+    c.name.includes(cafeName) || 
+    cafeName.includes(c.name)
+  );
+  
+  if (!cafe) return null;
+  
+  let detail = `☕ ${cafe.name}\n`;
+  detail += `━━━━━━━━━━━━\n`;
+  detail += `📍 ${cafe.address}\n`;
+  detail += `🕐 ${cafe.hours}\n`;
+  if (cafe.phone) detail += `📞 ${cafe.phone}\n`;
+  detail += `🔗 ${cafe.mapLink}`;
+  
+  return detail;
+}
+
+// 格式化咖啡廳訊息
+function formatCafeMessage(cafes, title = '咖啡廳') {
+  if (!cafes || cafes.length === 0) {
+    return '☕ 找不到相關的咖啡廳\n\n💡 提示：\n• 輸入「咖啡廳」查看所有咖啡廳\n• 輸入「下午茶」查看所有咖啡廳\n• 或直接輸入名稱搜尋（例如：星巴克）';
+  }
+
+  let message = `☕ 礁溪${title}列表\n`;
+  message += '━━━━━━━━━━━━\n\n';
+  
+  const displayCafes = cafes.slice(0, 30);
+  
+  displayCafes.forEach((cafe, index) => {
+    message += `${index + 1}. ${cafe.name}\n`;
+  });
+  
+  if (cafes.length > 30) {
+    message += `\n📊 還有 ${cafes.length - 30} 間咖啡廳\n`;
+  } else {
+    message += `\n📝 共 ${cafes.length} 間咖啡廳\n`;
+  }
+  
+  message += `\n━━━━━━━━━━━━\n🔍 例如：星巴克 或 路易莎`;
+  
+  return message;
+}
+
+// 取得子分類表情符號（保留供其他功能使用）
+function getSubcategoryEmoji(subcategory) {
+  const emojiMap = {
+    '特色咖啡': '☕',
+    '甜點咖啡': '🍰',
+    '茶屋': '🍵',
+    '刨冰咖啡': '❄️',
+    '校園咖啡': '📚',
+    '連鎖咖啡': '☕',
+    '景觀咖啡': '🏔️',
+    '自家烘焙': '🔥',
+    '書店咖啡': '📖',
+    '親子咖啡': '👪',
+    '寵物咖啡': '🐱'
+  };
+  return emojiMap[subcategory] || '☕';
+}
+
+module.exports = {
+  getAllCafes,
+  getCafeCount,
+  searchCafe,
+  getCafeDetail,
+  formatCafeMessage,
+  getSubcategoryEmoji
+};
