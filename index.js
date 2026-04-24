@@ -716,7 +716,7 @@ async function handleFamilyEnvironmentQuery(userMessage, replyToken, userId) {
 }
 
 async function handleDrinkAndDessertQuery(userMessage, replyToken, userId) {
-  if (userMessage === '飲料點心下午茶') {
+  if (userMessage === '飲料點心下午茶' || userMessage === '飲料' || userMessage === '點心') {
     const allPlaces = drinkAndDessertData.getAllDrinkAndDessert();
     
     userSessions.set(userId, {
@@ -791,7 +791,7 @@ async function handleShopSearch(userMessage, replyToken, userId) {
   if (results.length === 0) {
     return client.replyMessage(replyToken, {
       type: 'text',
-      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「礁溪親子環境」查看所有親子景點與餐廳\n• 輸入「飲料點心下午茶」查看所有飲料店、咖啡廳、點心\n• 輸入「咖啡廳」或「下午茶」查看所有咖啡廳\n• 或直接輸入名稱搜尋`
+      text: `🔍 找不到「${userMessage}」相關的地點\n\n💡 提示：\n• 輸入「礁溪早餐」查看所有早餐店\n• 輸入「礁溪午餐」查看所有午餐店\n• 輸入「礁溪晚餐」查看所有晚餐店\n• 輸入「礁溪親子環境」查看所有親子景點與餐廳\n• 輸入「飲料」或「點心」查看所有飲料店、點心\n• 輸入「咖啡廳」或「下午茶」查看所有咖啡廳\n• 或直接輸入名稱搜尋`
     });
   }
   
@@ -906,7 +906,7 @@ async function handleEvent(event) {
     return;
   }
 
-  if (userMessage === '飲料點心下午茶') {
+   if (userMessage === '飲料點心下午茶' || userMessage === '飲料' || userMessage === '點心') {
     await handleDrinkAndDessertQuery(userMessage, event.replyToken, userId);
     return;
   }
@@ -936,9 +936,9 @@ async function handleEvent(event) {
     return;
   }
 
-  return client.replyMessage(event.replyToken, {
+   return client.replyMessage(event.replyToken, {
     type: 'text',
-    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「礁溪親子環境」查詢親子景點與餐廳\n🥤 「飲料點心下午茶」查詢飲料店、咖啡廳、點心\n☕ 「咖啡廳」或「下午茶」查詢礁溪咖啡廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、星巴克、柯氏蔥油餅\n🛠️ 「!debug」查看API除錯資訊'
+    text: '請輸入指令查詢資訊：\n\n🌤️ 「天氣」或「宜蘭」查詢天氣\n🍳 「礁溪早餐」查詢礁溪早餐店\n🍱 「礁溪午餐」查詢礁溪午餐店\n🍽️ 「礁溪晚餐」查詢礁溪晚餐店\n👨‍👩‍👧‍👦 「礁溪親子環境」查詢親子景點與餐廳\n🥤 「飲料」或「點心」查詢所有飲料店、點心\n☕ 「咖啡廳」或「下午茶」查詢礁溪咖啡廳\n\n📖 分頁功能：查看列表後輸入「下一頁」或「上一頁」\n\n🔍 直接輸入名稱搜尋：\n   例如：酷克伊早餐、星巴克、柯氏蔥油餅\n🛠️ 「!debug」查看API除錯資訊'
   });
 }
 
